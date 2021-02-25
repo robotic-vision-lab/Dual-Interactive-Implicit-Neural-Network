@@ -1,6 +1,9 @@
 import os
 import torch
-
+import imageio
+import torchvision
+from torchvision import transforms as T
+from torch.nn import functional as F
 class IOStream():
     def __init__(self, path):
         self.f = open(path, 'a')
@@ -13,49 +16,54 @@ class IOStream():
     def close(self):
         self.f.close()
 
-#get all directories of the data
-#data is store as
-#train/
-#    170410-001-m-r9iu-df44-low-res-result/
-#      170410-001-m-r9iu-df44-low-res-result_normalized.npz
-#      landmarks3d.txt
-def get_ids(dir, num=None):
-    partition = {}
-    partition['train'] = []
-    partition['test'] = []
-    for root, directories, files in os.walk(os.path.join(dir,'train')):
-        for filename in files:
-            if filename.lower().endswith('.npz'):
-                partition['train'].append(os.path.join(root,filename))
-                #print(os.path.join(root,filename))
-    for root, directories, files in os.walk(os.path.join(dir,'test')):
-        for filename in files:
-            if filename.lower().endswith('.npz'):
-                partition['test'].append(os.path.join(root,filename))
-    return partition
+class GaussianNoise(object):
+    def __init__(self, mean=0., std=10.):
+        self.std = std
+        self.mean = mean
+        
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
-class SRDataset(torch.utils.data.Dataset):
+class SRx4Dataset(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, dir=os.path.join('.','data')):
+    def __init__(self, root_dir='data', partition='train', num_points=100, transforms=None):
         '''
         Inputs: dir(str) - directory to the data folder
+                partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
         '''
-        self.list_IDs = list_IDs
+        self.num_points=100
+        self.dir = os.path.join(root_dir, partition,'640_flir_hr')
+        print(self.dir)
+        self.transforms = transforms
+        self.img_paths = []
+        for root, dirs, files in os.walk(os.path.join(self.dir)):
+            for filename in files:
+                if filename.lower().endswith('.jpg'):
+                    self.img_paths.append(os.path.join(root,filename))
 
     def __len__(self):
         'Denotes the total number of samples'
-        return len(self.list_IDs)
+        return len(self.imgs)
 
-    def __getitem__(self, index):
+    def __getitem__(self, idx):
         'Generates one sample of data'
-        # Select sample
-        ID = self.list_IDs[index]
+        img_path = self.img_paths[idx]
+        img = T.Grayscale()(torchvision.io.read_image(img_path)).float()
+        lr_img = T.Resize((img.shape[1]//4, img.shape[2]//4))(img).float()
 
-        # Load data and get label
-        partial_scan, full_scan = get_scans(ID)
+        if self.transforms is not None:
+            lr_img = self.transforms(lr_img)
         
-        return torch.from_numpy(partial_scan), torch.from_numpy(full_scan)
+        lr_img = lr_img.unsqueeze(0) #(1,C,H',W')
+        img = img.unsqueeze(0) #(1,C,H,W)
+        points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
+        gt_intensities = F.grid_sample(img, points, mode='nearest') #(1,C,num_points,1)
+        return lr_img.squeeze(0), points.squeeze(0), gt_intensities.squeeze(0)
 
 if __name__ == '__main__':
-    print(list(os.walk(os.path.join('.','data'))))
-    print((os.path.abspath(os.path.curdir)))
+    dataset = SRx4Dataset()
+    img, p, gt = dataset[0]
+    print(img.shape, p.shape, gt.shape)
