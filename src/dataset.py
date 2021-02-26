@@ -24,7 +24,6 @@ class SRx4Dataset(torch.utils.data.Dataset):
         '''
         self.num_points=100
         self.dir = os.path.join(root_dir, partition,'640_flir_hr')
-        print(self.dir)
         self.transforms = transforms
         self.img_paths = []
         for root, dirs, files in os.walk(os.path.join(self.dir)):
@@ -34,24 +33,23 @@ class SRx4Dataset(torch.utils.data.Dataset):
 
     def __len__(self):
         'Denotes the total number of samples'
-        return len(self.imgs)
+        return len(self.img_paths)
 
     def __getitem__(self, idx):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
-        img = T.Grayscale()(torchvision.io.read_image(img_path)).float()
-        lr_img = T.Resize((img.shape[1]//4, img.shape[2]//4))(img).float()
-
+        img = T.Grayscale()(torchvision.io.read_image(img_path))/255
+        lr_img = T.Resize((img.shape[1]//4, img.shape[2]//4))(img)
         if self.transforms is not None:
             lr_img = self.transforms(lr_img)
         
         lr_img = lr_img.unsqueeze(0) #(1,C,H',W')
         img = img.unsqueeze(0) #(1,C,H,W)
         points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-        gt_intensities = F.grid_sample(img, points, mode='nearest') #(1,C,num_points,1)
+        gt_intensities = F.grid_sample(img, points, mode='bilinear') #(1,C,num_points,1)
         return lr_img.squeeze(0), points.squeeze(0), gt_intensities.squeeze(0).squeeze(-1).permute(1,0)
 
 if __name__ == '__main__':
     dataset = SRx4Dataset()
     img, p, gt = dataset[0]
-    print(img.shape, p.shape, gt.shape)
+    print(img, p, gt)

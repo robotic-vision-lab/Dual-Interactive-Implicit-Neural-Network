@@ -3,9 +3,9 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 
-class SR_model(nn.Module):
+class Mark_1(nn.Module):
     def __init__(self, in_channels=1):
-        super(SR_model, self).__init__()
+        super(Mark_1, self).__init__()
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 16, 3, padding=1),
                                     nn.ReLU(),
                                     nn.Conv2d(16, 32, 3, padding=1),
@@ -31,6 +31,7 @@ class SR_model(nn.Module):
                                 nn.Linear(128, 64),
                                 nn.ReLU(),
                                 nn.Linear(64, 1)) #if want RGB out, change to nn.Linear(64, 3)
+                                 
 
     def forward(self, x, p):
         #images x(N,C,H,W) and sample points p(N,H',W',2)
@@ -55,23 +56,9 @@ class SR_model(nn.Module):
 
         return out
 
-
 if __name__ == '__main__':
-    if torch.cuda.is_available():
-        device = torch.device("cuda:0")
-        print("Using CUDA")
-    else:
-        device = torch.device("cpu")
-        print("Using CPU")
-    #with torch.cuda.device(1):
-    imgs = torch.randn(16,1,100,200)
-    points = torch.rand(16,100,1,2)
-    
-    model = SR_model()
-    
-    out = model(imgs,points)
-    
-    
-    print(imgs.shape)
-    print(points.shape)
-    print(out.shape)
+    from dataset import SRx4Dataset
+    dataset = SRx4Dataset()
+    img, p, gt = dataset[0]
+    net = Mark_1()
+    print(net(img.unsqueeze(0),p.unsqueeze(0)))
