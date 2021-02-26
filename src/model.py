@@ -1,13 +1,7 @@
-from __future__ import print_function
 import torch
 import torch.nn as nn
-import torch.nn.parallel
-import torch.utils.data
-from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
-
-
 
 class SR_model(nn.Module):
     def __init__(self, in_channels=1):
@@ -36,8 +30,7 @@ class SR_model(nn.Module):
                                 nn.ReLU(),
                                 nn.Linear(128, 64),
                                 nn.ReLU(),
-                                nn.Linear(64, 1),
-                                nn.Sigmoid)
+                                nn.Linear(64, 1)) #if want RGB out, change to nn.Linear(64, 3)
 
     def forward(self, x, p):
         #images x(N,C,H,W) and sample points p(N,H',W',2)
@@ -63,7 +56,6 @@ class SR_model(nn.Module):
         return out
 
 
-
 if __name__ == '__main__':
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
@@ -72,18 +64,14 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         print("Using CPU")
     #with torch.cuda.device(1):
-    sim_data = torch.randn((4,2000,3), requires_grad=False, device=device)
-    print(sim_data.dtype)
+    imgs = torch.randn(16,1,100,200)
+    points = torch.rand(16,100,1,2)
     
-    trans = PointIncrement(in_features=3, k=10).cuda()
+    model = SR_model()
     
-    out = trans(sim_data)
+    out = model(imgs,points)
     
     
-    print(sim_data.size())
-    print(out.size())
-    
-    from chamfer_loss import ChamferLoss
-    loss = ChamferLoss()
-    print('loss: ', loss(out,  torch.cat((sim_data, out), dim=1)))
-    print('loss: ', loss(out,  torch.cat((sim_data, out), dim=1)))
+    print(imgs.shape)
+    print(points.shape)
+    print(out.shape)
