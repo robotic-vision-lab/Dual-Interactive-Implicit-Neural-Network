@@ -9,11 +9,13 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument('--model' , default='Mark_1', type=str)
-parser.add_argument('--batch_size' , default=16, type=int)
+parser.add_argument('--batch_size' , default=32, type=int)
 parser.add_argument('--optimizer' , default='SDG', type=str)
-parser.add_argument('--learning_rate' , default=1e-3, type=float)
+parser.add_argument('--learning_rate' , default=0.1, type=float)
 parser.add_argument('--momentum' , default=0.9, type=float)
 parser.add_argument('--num_point_samples', default=1000, type=int)
+parser.add_argument('--num_epochs', default=200, type=int)
+
 
 try:
     args = parser.parse_args()
@@ -35,9 +37,9 @@ if args.optimizer == 'SDG':
 if args.optimizer == 'Adam':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5)
+
 loss_fn = torch.nn.L1Loss(reduction='mean')
-
-
 
 data = SRx4Dataset(num_points=args.num_point_samples, transforms=None)
 num_train = int(0.8*len(data))
@@ -49,5 +51,5 @@ val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, s
 
 exp_name = '{}_{}_{}_{}'.format(args.model, args.num_point_samples, args.optimizer, args.learning_rate)
 
-trainer = trainer.Trainer(model, train_loader, val_loader, optimizer, loss_fn, device, exp_name)
-trainer.train(1000)
+trainer = trainer.Trainer(model, train_loader, val_loader, optimizer, scheduler, loss_fn, device, exp_name)
+trainer.train(args.num_epochs)
