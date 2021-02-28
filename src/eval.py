@@ -29,16 +29,17 @@ else:
 if args.model == 'Mark_1':
     model = model.Mark_1().to(device)
 
-test_data = SRx4Dataset(partition='test')
+test_data = SRx4Dataset(partition='test',transform=True)
 #test_loader = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
 
 subset_indices = [0] # select your indices here as a list
 
 subset = torch.utils.data.Subset(test_data, subset_indices)
 
-test_loader = torch.utils.data.DataLoader(subset, batch_size=1, num_workers=0, shuffle=False)
+test_loader = torch.utils.data.DataLoader(subset, batch_size=1, shuffle=False)
 
-#model.load_state_dict(torch.load(args.checkpoint_path))
+model.load_state_dict(torch.load(args.checkpoint_path))
+
 model.eval()
 
 with torch.no_grad():
@@ -48,8 +49,16 @@ with torch.no_grad():
         points = points.to(device)
         img = img.to(device)
         out = model(lr_img, points)
-        print(out)
-        print(out.size())
-        #out = model(lr_img, points).reshape(img.shape[0], img.shape[1], img.shape[2], img.shape[3])
-        #plt.imshow((out.squeeze(0).permute(1,2,0)*255).int().cpu())
-        #plt.show()
+        #print(out)
+        #print(out.size())
+        psnr = PSNR(out, img)
+        ssim = SSIM(out, img, val_range=255)
+        f, axarr = plt.subplots(1,3)
+        f.suptitle('psnr = {}, ssim = {}'.format(psnr, ssim))
+        axarr[0].imshow(lr_img.squeeze().int().cpu(), cmap='gray', vmin=0, vmax=255)
+        axarr[0].set_title('input')
+        axarr[1].imshow(out.squeeze().int().cpu(), cmap='gray', vmin=0, vmax=255)
+        axarr[1].set_title('pred')
+        axarr[2].imshow(img.squeeze().int().cpu(), cmap='gray', vmin=0, vmax=255)
+        axarr[2].set_title('gt')
+        plt.show()

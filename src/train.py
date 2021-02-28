@@ -3,7 +3,7 @@ import trainer
 from dataset import SRx4Dataset
 import argparse
 import torch
-
+torch.manual_seed(37)
 parser = argparse.ArgumentParser(
     description='Train Driver'
 )
@@ -14,7 +14,7 @@ parser.add_argument('--optimizer' , default='SDG', type=str)
 parser.add_argument('--learning_rate' , default=0.1, type=float)
 parser.add_argument('--momentum' , default=0.9, type=float)
 parser.add_argument('--num_point_samples', default=1000, type=int)
-parser.add_argument('--num_epochs', default=200, type=int)
+parser.add_argument('--num_epochs', default=1000, type=int)
 
 
 try:
@@ -40,11 +40,12 @@ if args.optimizer == 'Adam':
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5)
 
 loss_fn = torch.nn.L1Loss(reduction='mean')
+#loss_fn = torch.nn.MSELoss(reduction='mean')
 
-data = SRx4Dataset(num_points=args.num_point_samples, transforms=None)
+data = SRx4Dataset(num_points=args.num_point_samples, transform=True)
 num_train = int(0.8*len(data))
 num_val = len(data) - num_train
-train_data, val_data = torch.utils.data.random_split(data, [num_train, num_val], generator=torch.Generator().manual_seed(37))
+train_data, val_data = torch.utils.data.random_split(data, [num_train, num_val])
 
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True)

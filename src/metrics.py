@@ -4,10 +4,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from math import exp
 
-def PSNR(x,y):
+def PSNR(x,y,max_val=255):
     #shape (N,C,H,W)
     mse = F.mse_loss(x,y,reduction='mean')
-    psnr = 10 * torch.log10(1 / mse)
+    psnr = 10 * torch.log10(max_val**2 / mse)
     return psnr
 
 def gaussian_window(window_size=11, sigma=1.5, C=1):

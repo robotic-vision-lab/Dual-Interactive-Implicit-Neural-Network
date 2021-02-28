@@ -22,15 +22,20 @@ class Mark_1(nn.Module):
                                     nn.BatchNorm2d(256))
         self.max_pool = nn.MaxPool2d(2)
         
-        num_features = 1 + 32 + 128 + 256
-        self.mlp = nn.Sequential(nn.Linear(num_features, 256),
+        num_features = in_channels + 32 + 128 + 256
+        #self.mlp = nn.Sequential(nn.Linear(num_features, 256),
+        #                        nn.ReLU(),
+        #                        nn.Linear(256, 128),
+        #                        nn.ReLU(),
+        #                        nn.Linear(128, 64),
+        #                        nn.ReLU(),
+        #                        nn.Linear(64, 1)) #if want RGB out, change to nn.Linear(64, 3)
+        self.mlp = nn.Sequential(nn.Conv2d(num_features, 512, 1),
                                 nn.ReLU(),
-                                nn.Linear(256, 128),
+                                nn.Conv2d(512, 256, 1),
                                 nn.ReLU(),
-                                nn.Linear(128, 64),
-                                nn.ReLU(),
-                                nn.Linear(64, 1)) #if want RGB out, change to nn.Linear(64, 3)
-                                 
+                                nn.Conv2d(256, 1, 1),
+                                nn.ReLU()) #if want RGB out change last output channel to 3
 
     def forward(self, x, p):
         #images x(N,C,H,W) and sample points p(N,H',W',2)
@@ -49,9 +54,9 @@ class Mark_1(nn.Module):
         features_3 = F.grid_sample(x, p) #features_3(N,C3,H',W')
 
         features = torch.cat((features_0, features_1, features_2, features_3), dim=1)  #features(N,C0+C1+C2+C3,H',W')
-        features = torch.reshape(features, (features.shape[0], features.shape[2]*features.shape[3], -1)) #features(N,H'*W',C0+C1+C2+C3)
+        #features = torch.reshape(features, (features.shape[0], features.shape[2]*features.shape[3], -1)) #features(N,H'*W',C0+C1+C2+C3)
 
-        out = self.mlp(features) #features(N,H'*W',1)
+        out = self.mlp(features) #features(N,C,H',W')
 
         return out
 
@@ -60,4 +65,5 @@ if __name__ == '__main__':
     dataset = SRx4Dataset()
     img, p, gt = dataset[0]
     net = Mark_1()
-    print(net(img.unsqueeze(0),p.unsqueeze(0)))
+    print(net(img.unsqueeze(0),p.unsqueeze(0)).size())
+    print(sum(p.numel() for p in net.parameters() if p.requires_grad))
