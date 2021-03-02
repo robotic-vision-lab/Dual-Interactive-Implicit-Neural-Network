@@ -31,6 +31,8 @@ else:
 
 if args.model == 'Mark_1':
     model = model.Mark_1().to(device)
+if args.model == 'Mark_2':
+    model = model.Mark_2().to(device)
 
 if args.optimizer == 'SDG':
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)

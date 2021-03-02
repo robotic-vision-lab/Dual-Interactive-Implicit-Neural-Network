@@ -55,7 +55,7 @@ class SRx4Dataset(torch.utils.data.Dataset):
             img = img.unsqueeze(0) #(1,C,H,W)
             points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
             gt_intensities = F.grid_sample(img, points, mode='nearest') #(1,C,num_points,1)
-            return lr_img, points.squeeze(0), gt_intensities.squeeze(0)
+            return lr_img, points.squeeze(0), gt_intensities.squeeze(0), img.squeeze(0)
 
 if __name__ == '__main__':
     dataset = SRx4Dataset()
