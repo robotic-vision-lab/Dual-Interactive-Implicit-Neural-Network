@@ -30,6 +30,8 @@ if args.model == 'Mark_1':
     model = model.Mark_1().to(device)
 if args.model == 'Mark_2':
     model = model.Mark_2().to(device)
+if args.model == 'Mark_3':
+    model = model.Mark_3().to(device)
 
 test_data = SRx4Dataset(partition='test',transform=True)
 #test_loader = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
@@ -55,8 +57,10 @@ with torch.no_grad():
         #print(out.size())
         psnr = PSNR(out, img)
         ssim = SSIM(out, img, val_range=255)
+        psnr_temp = PSNR(temp, img)
+        ssim_temp = SSIM(temp, img, val_range=255)
         f, axarr = plt.subplots(1,4)
-        f.suptitle('psnr = {}, ssim = {}'.format(psnr, ssim))
+        f.suptitle('psnr_pred = {:.4}, ssim_pred = {:.4}, psnr_temp = {:.4}, ssim_temp = {:.4}'.format(psnr, ssim, psnr_temp, ssim_temp))
         axarr[0].imshow(lr_img.squeeze().int().cpu(), cmap='gray', vmin=0, vmax=255)
         axarr[0].set_title('input')
         axarr[1].imshow(out.squeeze().int().cpu(), cmap='gray', vmin=0, vmax=255)

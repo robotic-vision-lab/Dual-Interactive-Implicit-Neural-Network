@@ -41,8 +41,8 @@ def SSIM(img1, img2, val_range, window_size=11, window=None, size_average=True, 
     sigma2_sq = F.conv2d(img2 * img2, window, padding=pad, groups=channels) - mu2_sq
     sigma12 =  F.conv2d(img1 * img2, window, padding=pad, groups=channels) - mu12
     # Some constants for stability 
-    C1 = (0.01 ) ** 2  # NOTE: Removed L from here (ref PT implementation)
-    C2 = (0.03 ) ** 2 
+    C1 = (L*0.01 ) ** 2  # NOTE: Removed L from here (ref PT implementation)
+    C2 = (L*0.03 ) ** 2 
     contrast_metric = (2.0 * sigma12 + C2) / (sigma1_sq + sigma2_sq + C2)
     contrast_metric = torch.mean(contrast_metric)
     numerator1 = 2 * mu12 + C1  
