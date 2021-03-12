@@ -36,7 +36,7 @@ if args.model == 'Mark_3':
 test_data = SRx4Dataset(partition='test',transform=True)
 #test_loader = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
 
-subset_indices = [0] # select your indices here as a list
+subset_indices = [3] # select your indices here as a list
 
 subset = torch.utils.data.Subset(test_data, subset_indices)
 

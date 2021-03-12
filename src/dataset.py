@@ -41,9 +41,9 @@ class SRx4Dataset(torch.utils.data.Dataset):
         img_path = self.img_paths[idx]
         img = T.Grayscale()(torchvision.io.read_image(img_path)).float()
         lr_img = T.Resize((img.shape[1]//4, img.shape[2]//4))(img)
-        if self.transform:
-            transform = GaussianNoise(0., 10.)
-            lr_img = transform(lr_img)
+        #if self.transform:
+            #transform = GaussianNoise(0., 10.)
+            #lr_img = transform(lr_img)
         if self.partition == 'test':
             h = img.shape[1]
             w = img.shape[2]
