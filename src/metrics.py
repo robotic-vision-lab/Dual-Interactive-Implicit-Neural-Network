@@ -27,7 +27,7 @@ def SSIM(img1, img2, val_range, window_size=11, window=None, size_average=True, 
     # if window is not provided, init one
     if window is None: 
         real_size = min(window_size, height, width) # window should be atleast 11x11 
-        window = gaussian_window(real_size, channels).to(img1.device)
+        window = gaussian_window(real_size, C=channels).to(img1.device)
     # calculating the mu parameter (locally) for both images using a gaussian filter 
     # calculates the luminosity params
     mu1 = F.conv2d(img1, window, padding=pad, groups=channels)

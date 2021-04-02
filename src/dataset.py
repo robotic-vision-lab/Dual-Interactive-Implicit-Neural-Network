@@ -87,7 +87,7 @@ class DIV2K(torch.utils.data.Dataset):
         #if self.transform:
             #transform = GaussianNoise(0., 10.)
             #lr_img = transform(lr_img)
-        if self.partition == 'valid' and False:
+        if self.partition == 'valid':
             h = img.shape[1]
             w = img.shape[2]
             h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
@@ -99,7 +99,7 @@ class DIV2K(torch.utils.data.Dataset):
             points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
             gt_intensities = F.grid_sample(img, points, mode='bicubic') #(1,C,num_points,1)
             return lr_img, points.squeeze(0), gt_intensities.squeeze(0)
-            
+
 if __name__ == '__main__':
     dataset = DIV2K()
     img, p, gt = dataset[0]
