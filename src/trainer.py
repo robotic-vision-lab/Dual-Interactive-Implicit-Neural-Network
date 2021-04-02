@@ -34,13 +34,11 @@ class Trainer(object):
         return loss.item()
     
     def compute_loss(self, batch):
-        lr_img, points, gt, hr_img = batch
+        lr_img, points, gt = batch
         lr_img = lr_img.to(self.device)
         points = points.to(self.device)
-        gt = gt.to(self.device)
-        hr_img = hr_img.to(self.device)
         out, hr_out = self.model(lr_img, points)
-        loss = self.loss_fn(out, gt) + self.loss_fn(hr_out, hr_img) #(N,num_points,1)
+        loss = self.loss_fn(out, gt) #(N,num_points,1)
         #loss = loss.sum(1).mean()
         return loss
 

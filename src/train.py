@@ -10,8 +10,8 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--model' , default='Mark_1', type=str)
 parser.add_argument('--batch_size' , default=32, type=int)
-parser.add_argument('--optimizer' , default='SDG', type=str)
-parser.add_argument('--learning_rate' , default=0.1, type=float)
+parser.add_argument('--optimizer' , default='Adam', type=str)
+parser.add_argument('--learning_rate' , default=0.001, type=float)
 parser.add_argument('--momentum' , default=0.9, type=float)
 parser.add_argument('--num_point_samples', default=1000, type=int)
 parser.add_argument('--num_epochs', default=1000, type=int)
@@ -22,19 +22,15 @@ try:
 except:
     args = parser.parse_known_args()[0]
 
+if args.model == 'Mark_1':
+    model = model.Mark_1().to(device)
+
 if torch.cuda.is_available():
     device = torch.device("cuda")
     print('USE CUDA')
 else:
     device = torch.device("cpu")
     print('USE CPU')
-
-if args.model == 'Mark_1':
-    model = model.Mark_1().to(device)
-if args.model == 'Mark_2':
-    model = model.Mark_2().to(device)
-if args.model == 'Mark_3':
-    model = model.Mark_3().to(device)
 
 if args.optimizer == 'SDG':
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
