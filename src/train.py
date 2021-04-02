@@ -49,8 +49,8 @@ num_train = int(0.8*len(data))
 num_val = len(data) - num_train
 train_data, val_data = torch.utils.data.random_split(data, [num_train, num_val])
 
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
-val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, num_workers=2, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, num_workers=2, shuffle=True)
 
 exp_name = '{}_x{}_{}_{}_{}'.format(args.model, args.scale_factor, args.num_point_samples, args.optimizer, args.learning_rate)
 print(exp_name)

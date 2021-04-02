@@ -3,6 +3,7 @@ import torch
 import torchvision
 from torchvision import transforms as T
 from torch.nn import functional as F
+import PIL
 torch.manual_seed(37)
 class GaussianNoise(object):
     def __init__(self, mean=0., std=10.):
@@ -59,7 +60,7 @@ class SRx4Dataset(torch.utils.data.Dataset):
 
 class DIV2K(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, root_dir='$WORK/datasets/DIV2K', partition='train', downscale_factor=2, num_points=1000, transform=True):
+    def __init__(self, root_dir='$WORK/datasets/DIV2K', partition='train', downscale_factor=4, num_points=1000, transform=True):
         '''
         Inputs: dir(str) - directory to the data folder
                 partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
@@ -83,7 +84,8 @@ class DIV2K(torch.utils.data.Dataset):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
         img = torchvision.io.read_image(img_path).float()
-        lr_img = T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor))(img)
+        s = torch.randint(2, self.downscale_factor + 1, ())
+        lr_img = T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=PIL.Image.BICUBIC)(img)
         #if self.transform:
             #transform = GaussianNoise(0., 10.)
             #lr_img = transform(lr_img)
