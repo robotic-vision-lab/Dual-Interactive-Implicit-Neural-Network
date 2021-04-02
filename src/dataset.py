@@ -67,7 +67,7 @@ class DIV2K(torch.utils.data.Dataset):
         self.num_points= num_points
         self.partition = partition
         self.dir = os.path.join(root_dir, 'DIV2K_'+partition+'_HR')
-        print(self.dir)
+        self.downscale_factor = downscale_factor
         self.transform = transform
         self.img_paths = []
         for root, dirs, files in os.walk(os.path.join(self.dir)):
@@ -83,7 +83,7 @@ class DIV2K(torch.utils.data.Dataset):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
         img = torchvision.io.read_image(img_path).float()
-        lr_img = T.Resize((img.shape[1]//downscale_factor, img.shape[2]//downscale_factor))(img)
+        lr_img = T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor))(img)
         #if self.transform:
             #transform = GaussianNoise(0., 10.)
             #lr_img = transform(lr_img)
