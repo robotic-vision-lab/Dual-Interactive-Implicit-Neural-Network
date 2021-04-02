@@ -72,7 +72,7 @@ class DIV2K(torch.utils.data.Dataset):
         self.img_paths = []
         for root, dirs, files in os.walk(os.path.join(self.dir)):
             for filename in files:
-                if filename.lower().endswith('.jpg'):
+                if filename.lower().endswith('.png'):
                     self.img_paths.append(os.path.join(root,filename))
         
     def __len__(self):
