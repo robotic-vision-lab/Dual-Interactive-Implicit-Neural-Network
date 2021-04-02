@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class Trainer(object):
     def __init__(self, model, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name):
+        self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = optimizer
@@ -24,7 +25,6 @@ class Trainer(object):
         self.last_checkpoint=None
 
     def train_step(self, batch):
-        self.model.train()
         self.optimizer.zero_grad()
         loss = self.compute_loss(batch)
         loss.backward()
@@ -32,9 +32,11 @@ class Trainer(object):
         return loss.item()
     
     def compute_loss(self, batch):
+        self.model.train()
         lr_img, points, gt = batch
         lr_img = lr_img.cuda()
         points = points.cuda()
+        gt = gt.cuda()
         out = self.model(lr_img, points)
         loss = self.loss_fn(out, gt) #(N,num_points,1)
         return loss

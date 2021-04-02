@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--model' , default='Mark_1', type=str)
 parser.add_argument('--scale_factor' , default=4, type=int)
-parser.add_argument('--batch_size' , default=16, type=int)
+parser.add_argument('--batch_size' , default=1, type=int)
 parser.add_argument('--optimizer' , default='Adam', type=str)
 parser.add_argument('--learning_rate' , default=0.001, type=float)
 parser.add_argument('--momentum' , default=0.9, type=float)

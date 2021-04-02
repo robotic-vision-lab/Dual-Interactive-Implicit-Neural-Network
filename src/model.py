@@ -3,36 +3,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Mark_1(nn.Module):
-    def __init__(self, in_channels=1):
+    def __init__(self, in_channels=3):
         super(Mark_1, self).__init__()
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 32, 3),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(32, 32, 3),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv2 = nn.Sequential(nn.Conv2d(128, 64, 3),
+        self.conv2 = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64, 64, 3),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv3 = nn.Sequential(nn.Conv2d(256, 128, 3),
+        self.conv3 = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(128, 128, 3),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
 
-        self.conv4 = nn.Sequential(nn.Conv2d(512, 256, 3),
+        self.conv4 = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(256, 256, 3),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
         
-        self.unshuffle = nn.PixelUnshuffle(downscale_factor=2)
+        self.downsample = torch.nn.AvgPool2d(2)
         
-        num_features = in_channels + 32 + 64 + 128 + 256
+        num_features = in_channels + 64 + 64 + 64 + 64
 
         self.mlp = nn.Sequential(nn.Conv2d(num_features, 512, 1),
                                 nn.ReLU(),
                                 nn.Conv2d(512, 512, 1),
                                 nn.ReLU(),
-                                nn.Conv2d(512, 3, 1),
-                                nn.Sigmoid()) #if want RGB out change last output channel to 3
+                                nn.Conv2d(512, 3, 1), 
+                                nn.ReLU()) #if want RGB out change last output channel to 3
 
     def forward(self, x, p):
         #images x(N,C,H,W) and sample points p(N,H',W',2)
@@ -41,15 +41,15 @@ class Mark_1(nn.Module):
 
         x = self.conv1(x)
         features_1 = F.grid_sample(x, p, mode='bicubic') #features_1(N,C1,H',W')
-        x = self.unshuffle(x)
+        x = self.downsample(x)
 
         x = self.conv2(x)
         features_2 = F.grid_sample(x, p, mode='bicubic') #features_2(N,C2,H',W')
-        x = self.unshuffle(x)
+        x = self.downsample(x)
 
         x = self.conv3(x)
         features_3 = F.grid_sample(x, p, mode='bicubic') #features_3(N,C3,H',W')
-        x = self.unshuffle(x)
+        x = self.downsample(x)
 
         x = self.conv4(x)
         features_4 = F.grid_sample(x, p, mode='bicubic') #features_4(N,C4,H',W')
