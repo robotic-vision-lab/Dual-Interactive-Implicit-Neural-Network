@@ -6,14 +6,12 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 class Trainer(object):
-    def __init__(self, model, train_loader, val_loader, optimizer, scheduler, loss_fn, device, exp_name):
-        self.model = model.to(device)
+    def __init__(self, model, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.loss_fn = loss_fn
-        self.device = device
         self.exp_path = os.path.join('experiments', exp_name) 
         if not os.path.exists(self.exp_path):
             print(self.exp_path)
@@ -35,11 +33,10 @@ class Trainer(object):
     
     def compute_loss(self, batch):
         lr_img, points, gt = batch
-        lr_img = lr_img.to(self.device)
-        points = points.to(self.device)
-        out, hr_out = self.model(lr_img, points)
+        lr_img = lr_img.cuda()
+        points = points.cuda()
+        out = self.model(lr_img, points)
         loss = self.loss_fn(out, gt) #(N,num_points,1)
-        #loss = loss.sum(1).mean()
         return loss
 
     def compute_val_loss(self):

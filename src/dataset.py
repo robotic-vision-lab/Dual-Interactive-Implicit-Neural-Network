@@ -81,12 +81,12 @@ class DIV2K(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
-        img = torchvision.io.read_image(img_path)).float()
+        img = torchvision.io.read_image(img_path).float()
         lr_img = T.Resize((img.shape[1]//downscale_factor, img.shape[2]//downscale_factor))(img)
         #if self.transform:
             #transform = GaussianNoise(0., 10.)
             #lr_img = transform(lr_img)
-        if self.partition == 'valid':
+        if self.partition == 'valid' and False:
             h = img.shape[1]
             w = img.shape[2]
             h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
