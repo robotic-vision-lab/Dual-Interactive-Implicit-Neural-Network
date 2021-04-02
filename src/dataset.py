@@ -59,7 +59,7 @@ class SRx4Dataset(torch.utils.data.Dataset):
 
 class DIV2K(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, root_dir='data', partition='train', downscale_factor=2, num_points=1000, transform=True):
+    def __init__(self, root_dir='$WORK/datasets/DIV2K', partition='train', downscale_factor=2, num_points=1000, transform=True):
         '''
         Inputs: dir(str) - directory to the data folder
                 partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
@@ -67,6 +67,7 @@ class DIV2K(torch.utils.data.Dataset):
         self.num_points= num_points
         self.partition = partition
         self.dir = os.path.join(root_dir, 'DIV2K_'+partition+'_HR')
+        print(self.dir)
         self.transform = transform
         self.img_paths = []
         for root, dirs, files in os.walk(os.path.join(self.dir)):
@@ -100,6 +101,7 @@ class DIV2K(torch.utils.data.Dataset):
             return lr_img, points.squeeze(0), gt_intensities.squeeze(0), img.squeeze(0)
 
 if __name__ == '__main__':
-    dataset = SRx4Dataset()
+    dataset = DIV2K()
     img, p, gt = dataset[0]
     print(img, p, gt)
+    print(img.size(), p.size(), gt.size())
