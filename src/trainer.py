@@ -6,8 +6,9 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 class Trainer(object):
-    def __init__(self, model, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name):
+    def __init__(self, model, device, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name):
         self.model = model
+        self.device = device
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = optimizer
@@ -32,11 +33,10 @@ class Trainer(object):
         return loss.item()
     
     def compute_loss(self, batch):
-        self.model.train()
         lr_img, points, gt = batch
-        lr_img = lr_img.cuda()
-        points = points.cuda()
-        gt = gt.cuda()
+        lr_img = lr_img.to(self.device)
+        points = points.to(self.device)
+        gt = gt.to(self.device)
         out = self.model(lr_img, points)
         loss = self.loss_fn(out, gt) #(N,num_points,1)
         return loss
@@ -50,6 +50,7 @@ class Trainer(object):
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
+            self.model.train()
             train_loss = 0
             for batch in self.train_loader:
                 loss = self.train_step(batch)
@@ -62,7 +63,8 @@ class Trainer(object):
                 self.val_min = val_loss
             elif val_loss < self.val_min:
                 self.val_min = val_loss
-                self.update_checkpoint()
+                if self.device == 0:
+                    self.update_checkpoint()
             self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
 
             print('Epoch {}, train_loss {}, val_loss {}'.format(epoch, train_loss/len(self.train_loader), val_loss))
@@ -70,6 +72,6 @@ class Trainer(object):
     def update_checkpoint(self):
         if self.last_checkpoint is not None:
             os.remove(self.last_checkpoint)
-        path = os.path.join(self.exp_path, 'checkpoint_{}'.format(self.val_min))
+        path = os.path.join(self.exp_path, 'checkpoint')
         torch.save(self.model.state_dict(), path)
         self.last_checkpoint = path

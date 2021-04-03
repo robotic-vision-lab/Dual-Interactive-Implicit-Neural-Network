@@ -5,62 +5,35 @@ from torchvision import transforms as T
 from torch.nn import functional as F
 import PIL
 torch.manual_seed(37)
-class GaussianNoise(object):
-    def __init__(self, mean=0., std=10.):
-        self.std = std
-        self.mean = mean
-        
-    def __call__(self, tensor):
-        return tensor + torch.randn(tensor.size()) * self.std + self.mean
-    
-    def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
-class SRx4Dataset(torch.utils.data.Dataset):
-    'Characterizes a dataset for PyTorch'
-    def __init__(self, root_dir='data', partition='train', num_points=100, transform=True):
-        '''
-        Inputs: dir(str) - directory to the data folder
-                partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
-        '''
-        self.num_points= num_points
-        self.partition = partition
-        self.dir = os.path.join(root_dir, partition,'640_flir_hr')
-        self.transform = transform
-        self.img_paths = []
-        for root, dirs, files in os.walk(os.path.join(self.dir)):
-            for filename in files:
-                if filename.lower().endswith('.jpg'):
-                    self.img_paths.append(os.path.join(root,filename))
-        
-    def __len__(self):
-        'Denotes the total number of samples'
-        return len(self.img_paths)
+class RandomCrop(object):
+    """Crop randomly the image in a sample.
 
-    def __getitem__(self, idx):
-        'Generates one sample of data'
-        img_path = self.img_paths[idx]
-        img = T.Grayscale()(torchvision.io.read_image(img_path)).float()
-        lr_img = T.Resize((img.shape[1]//4, img.shape[2]//4))(img)
-        #if self.transform:
-            #transform = GaussianNoise(0., 10.)
-            #lr_img = transform(lr_img)
-        if self.partition == 'test':
-            h = img.shape[1]
-            w = img.shape[2]
-            h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
-            w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
-            points = torch.cat((w_idx, h_idx), -1)
-            return lr_img, points, img
+    Args:
+        output_size (tuple or int): Desired output size. If int, square crop
+            is made.
+    """
+
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
         else:
-            img = img.unsqueeze(0) #(1,C,H,W)
-            points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-            gt_intensities = F.grid_sample(img, points, mode='nearest') #(1,C,num_points,1)
-            return lr_img, points.squeeze(0), gt_intensities.squeeze(0), img.squeeze(0)
+            assert len(output_size) == 2
+            self.output_size = output_size
+
+    def __call__(self, image):
+        h, w = image.shape[-2:]
+        new_h, new_w = self.output_size
+        top = torch.randint(0, h - new_h, ())
+        left = torch.randint(0, w - new_w, ())
+        image = image[:, top: top + new_h, left: left + new_w]
+        return image
+
 
 class DIV2K(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, root_dir='$WORK/datasets/DIV2K', partition='train', downscale_factor=4, num_points=1000, transform=True):
+    def __init__(self, root_dir='D:\qhn8083\data\DIV2K', partition='train', downscale_factor=4, num_points=1000, transform=True):
         '''
         Inputs: dir(str) - directory to the data folder
                 partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
@@ -84,23 +57,40 @@ class DIV2K(torch.utils.data.Dataset):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
         img = torchvision.io.read_image(img_path).float()
-        s = torch.randint(2, self.downscale_factor + 1, ())
-        lr_img = T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=PIL.Image.BICUBIC)(img)
-        #if self.transform:
-            #transform = GaussianNoise(0., 10.)
-            #lr_img = transform(lr_img)
+        lr_imgs = []
+        points = []
+        gts = []
         if self.partition == 'valid':
-            h = img.shape[1]
-            w = img.shape[2]
-            h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
-            w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
-            points = torch.cat((w_idx, h_idx), -1)
-            return lr_img, points, img
+            if self.transform:
+                transform = T.Compose([T.FiveCrop((128,256))])
+                imgs = transform(img)
+            for img in imgs:
+                lr_imgs.append(T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
+                h = img.shape[1]
+                w = img.shape[2]
+                h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
+                w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
+                points.append(torch.cat((w_idx, h_idx), -1))
+            lr_imgs = torch.stack(lr_imgs)
+            points = torch.stack(points)
+            imgs = torch.stack(imgs)
+            return lr_imgs, points, imgs
         else:
-            img = img.unsqueeze(0) #(1,C,H,W)
-            points = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-            gt_intensities = F.grid_sample(img, points, mode='bicubic') #(1,C,num_points,1)
-            return lr_img, points.squeeze(0), gt_intensities.squeeze(0)
+            if self.transform:
+                transform = T.Compose([RandomCrop(256), T.TenCrop((128, 128))])
+                imgs = transform(img)
+            s = torch.randint(1, self.downscale_factor + 1, ())
+            for img in imgs:
+                lr_imgs.append(T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
+                img = img.unsqueeze(0) #(1,C,H,W)
+                p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
+                gt = F.grid_sample(img, p, mode='nearest', align_corners=False) #(1,C,num_points,1)
+                points.append(p.squeeze(0))
+                gts.append(gt.squeeze(0))
+            lr_imgs = torch.stack(lr_imgs)
+            points = torch.stack(points)
+            gts = torch.stack(gts)
+            return lr_imgs, points, gts
 
 if __name__ == '__main__':
     dataset = DIV2K()
