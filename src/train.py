@@ -1,6 +1,6 @@
 import os
-import model
-import trainer
+from model import Mark_1
+from trainer import Trainer
 from dataset import DIV2K
 import argparse
 import torch
@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument('--model' , default='Mark_1', type=str)
+parser.add_argument('--n_gpus' , default=1, type=int)
 parser.add_argument('--scale_factor' , default=4, type=int)
 parser.add_argument('--batch_size' , default=None, type=int)
 parser.add_argument('--optimizer' , default='Adam', type=str)
@@ -42,8 +43,8 @@ def demo(rank, world_size):
     setup(rank, world_size)
 
     if args.model == 'Mark_1':
-        model = model.Mark_1().to(rank)
-    ddp_model = DDP(model, device_ids=[rank])
+        model = Mark_1().to(rank)
+        ddp_model = DDP(model, device_ids=[rank])
 
     if args.optimizer == 'SDG':
         optimizer = torch.optim.SGD(ddp_model.parameters(), lr=args.learning_rate, momentum=args.momentum)
@@ -54,16 +55,14 @@ def demo(rank, world_size):
 
     loss_fn = torch.nn.L1Loss(reduction='mean')
 
-    data = DIV2K(root_dir=args.data_dir, partition='train', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
-    num_train = int(0.8*len(data))
-    num_val = len(data) - num_train
-    train_data, val_data = torch.utils.data.random_split(data, [num_train, num_val])
+    train_data = DIV2K(root_dir=args.data_dir, partition='train', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
+    val_data = DIV2K(root_dir=args.data_dir, partition='valid', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True)
 
     exp_name = '{}_x{}_{}_{}_{}'.format(args.model, args.scale_factor, args.num_point_samples, args.optimizer, args.learning_rate)
     print(exp_name)
-    trainer = trainer.Trainer(model, device, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name)
+    trainer = Trainer(model, rank, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name)
     trainer.train(args.num_epochs)
 
     cleanup()
@@ -76,7 +75,7 @@ def run_demo(demo_fn, world_size):
 
 if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()
-    if n_gpus < 4:
-        print(f"Requires at least 4 GPUs to run, but got {n_gpus}.")
+    if n_gpus < args.n_gpus:
+        print(f"Requires at least {args.n_gpus} GPUs to run, but got {n_gpus}.")
     else:
-        run_demo(demo, 4)
+        run_demo(demo, args.n_gpus)

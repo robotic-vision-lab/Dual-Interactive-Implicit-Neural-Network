@@ -33,7 +33,7 @@ class RandomCrop(object):
 
 class DIV2K(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, root_dir='D:\qhn8083\data\DIV2K', partition='train', downscale_factor=4, num_points=1000, transform=True):
+    def __init__(self, root_dir='D:\qhn8083\data\DIV2K', partition='train', downscale_factor=4, num_points=1000, transform=True, eval=False):
         '''
         Inputs: dir(str) - directory to the data folder
                 partition - sub-dir in dataset folder (e.g. 'train', 'test', 'val')
@@ -43,6 +43,7 @@ class DIV2K(torch.utils.data.Dataset):
         self.dir = os.path.join(root_dir, 'DIV2K_'+partition+'_HR')
         self.downscale_factor = downscale_factor
         self.transform = transform
+        self.eval = eval
         self.img_paths = []
         for root, dirs, files in os.walk(os.path.join(self.dir)):
             for filename in files:
@@ -60,7 +61,7 @@ class DIV2K(torch.utils.data.Dataset):
         lr_imgs = []
         points = []
         gts = []
-        if self.partition == 'valid':
+        if self.partition == 'valid' and self.eval==True:
             if self.transform:
                 transform = T.Compose([T.FiveCrop((128,256))])
                 imgs = transform(img)
@@ -77,14 +78,14 @@ class DIV2K(torch.utils.data.Dataset):
             return lr_imgs, points, imgs
         else:
             if self.transform:
-                transform = T.Compose([RandomCrop(256), T.TenCrop((128, 128))])
+                transform = T.Compose([RandomCrop(512), T.TenCrop((256, 256))])
                 imgs = transform(img)
             s = torch.randint(1, self.downscale_factor + 1, ())
             for img in imgs:
                 lr_imgs.append(T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
                 img = img.unsqueeze(0) #(1,C,H,W)
                 p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-                gt = F.grid_sample(img, p, mode='nearest', align_corners=False) #(1,C,num_points,1)
+                gt = F.grid_sample(img, p, mode='bicubic', align_corners=False) #(1,C,num_points,1)
                 points.append(p.squeeze(0))
                 gts.append(gt.squeeze(0))
             lr_imgs = torch.stack(lr_imgs)

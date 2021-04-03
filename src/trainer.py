@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 class Trainer(object):
     def __init__(self, model, device, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name):
@@ -50,24 +51,32 @@ class Trainer(object):
 
     def train(self, num_epochs):
         for epoch in range(num_epochs):
-            self.model.train()
-            train_loss = 0
-            for batch in self.train_loader:
-                loss = self.train_step(batch)
-                train_loss += loss
-                self.writer.add_scalar('train_loss/batch', loss, epoch)
-            self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
-            val_loss = self.compute_val_loss()
-            self.scheduler.step(val_loss)
-            if self.val_min is None:
-                self.val_min = val_loss
-            elif val_loss < self.val_min:
-                self.val_min = val_loss
-                if self.device == 0:
-                    self.update_checkpoint()
-            self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
-
-            print('Epoch {}, train_loss {}, val_loss {}'.format(epoch, train_loss/len(self.train_loader), val_loss))
+            with tqdm(self.train_loader, unit='batch') as tepoch:
+                tepoch.set_description(f"Train {epoch}")
+                self.model.train()
+                train_loss = 0
+                for i, batch in enumerate(tepoch):
+                    loss = self.train_step(batch)
+                    train_loss += loss
+                    tepoch.set_postfix(loss=train_loss/(i+1))
+                self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
+                
+                with tqdm(self.val_loader, unit='batch') as vepoch:
+                    vepoch.set_description(f"Valid {epoch}")
+                    self.model.eval()
+                    val_loss = 0
+                    for i, batch in enumerate(vepoch):
+                        loss = self.compute_loss(batch)
+                        val_loss += loss.item()
+                        vepoch.set_postfix(loss=val_loss/(i+1))
+                    self.scheduler.step(val_loss)
+                    if self.val_min is None:
+                        self.val_min = val_loss
+                    elif val_loss < self.val_min:
+                        self.val_min = val_loss
+                        if self.device == 0:
+                            self.update_checkpoint()
+                    self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
 
     def update_checkpoint(self):
         if self.last_checkpoint is not None:
