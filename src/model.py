@@ -5,17 +5,17 @@ import torch.nn.functional as F
 class Mark_1(nn.Module):
     def __init__(self, in_channels=3):
         super(Mark_1, self).__init__()
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 64, 3, padding=1, padding_mode='reflect'),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 64, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
+                                    nn.Conv2d(64, 64, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv2 = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+        self.conv2 = nn.Sequential(nn.Conv2d(64, 64*2, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.Conv2d(64*2, 64*4, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv3 = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+        self.conv3 = nn.Sequential(nn.Conv2d(64, 64*2, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.Conv2d(64*2, 64*4, 5, padding=2, padding_mode='reflect'),
                                     nn.ReLU())
     
         self.upsample = torch.nn.PixelShuffle(2)

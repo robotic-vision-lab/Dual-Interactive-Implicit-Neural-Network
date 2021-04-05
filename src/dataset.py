@@ -78,7 +78,7 @@ class DIV2K(torch.utils.data.Dataset):
             return lr_imgs, points, imgs
         else:
             if self.transform:
-                transform = T.Compose([RandomCrop(512), T.TenCrop((256, 256))])
+                transform = T.Compose([RandomCrop(256), T.TenCrop((128, 128))])
                 imgs = transform(img)
             s = torch.randint(2, self.downscale_factor + 1, ())
             for img in imgs:
