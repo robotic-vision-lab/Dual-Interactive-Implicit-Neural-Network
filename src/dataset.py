@@ -57,7 +57,7 @@ class DIV2K(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
-        img = torchvision.io.read_image(img_path).float()
+        img = torchvision.io.read_image(img_path).float()/255
         lr_imgs = []
         points = []
         gts = []
@@ -80,7 +80,7 @@ class DIV2K(torch.utils.data.Dataset):
             if self.transform:
                 transform = T.Compose([RandomCrop(512), T.TenCrop((256, 256))])
                 imgs = transform(img)
-            s = torch.randint(1, self.downscale_factor + 1, ())
+            s = torch.randint(2, self.downscale_factor + 1, ())
             for img in imgs:
                 lr_imgs.append(T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
                 img = img.unsqueeze(0) #(1,C,H,W)

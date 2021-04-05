@@ -29,10 +29,10 @@ else:
     print('USE CPU')
     device = "cpu"
 
-test_data = DIV2K(root_dir=args.data_dir, partition='valid', downscale_factor=args.scale_factor)
+test_data = DIV2K(root_dir=args.data_dir, partition='valid', downscale_factor=args.scale_factor, eval=True)
 #test_loader = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
 
-subset_indices = [11, 12, 13] # select your indices here as a list
+subset_indices = torch.randint(0, len(test_data), (3,)) # select your indices here as a list
 
 subset = torch.utils.data.Subset(test_data, subset_indices)
 
