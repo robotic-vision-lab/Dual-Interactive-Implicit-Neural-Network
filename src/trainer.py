@@ -15,13 +15,14 @@ class Trainer(object):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.loss_fn = loss_fn
-        self.exp_path = os.path.join('experiments', exp_name) 
-        if not os.path.exists(self.exp_path):
-            print(self.exp_path)
-            os.makedirs(self.exp_path)
-        else:
-            for f in os.listdir(self.exp_path):
-                os.remove(os.path.join(self.exp_path, f))
+        self.exp_path = os.path.join('experiments', exp_name)
+        if self.device == 0: 
+            if not os.path.exists(self.exp_path):
+                print(self.exp_path)
+                os.makedirs(self.exp_path)
+            else:
+                for f in os.listdir(self.exp_path):
+                    os.remove(os.path.join(self.exp_path, f))
         self.writer = SummaryWriter(self.exp_path)
         self.val_min = None
         self.last_checkpoint=None
@@ -59,7 +60,8 @@ class Trainer(object):
                     loss = self.train_step(batch)
                     train_loss += loss
                     tepoch.set_postfix(loss=train_loss/(i+1))
-                self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
+                if self.device == 0:
+                    self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
                 
                 with tqdm(self.val_loader, unit='batch') as vepoch:
                     vepoch.set_description(f"Valid {epoch}")
@@ -76,7 +78,8 @@ class Trainer(object):
                         self.val_min = val_loss
                         if self.device == 0:
                             self.update_checkpoint()
-                    self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
+                    if self.device == 0:
+                        self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
 
     def update_checkpoint(self):
         if self.last_checkpoint is not None:
