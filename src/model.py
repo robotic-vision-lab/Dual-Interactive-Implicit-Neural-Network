@@ -5,22 +5,34 @@ import torch.nn.functional as F
 class Mark_1(nn.Module):
     def __init__(self, in_channels=3):
         super(Mark_1, self).__init__()
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 64, 5, padding=2, padding_mode='reflect'),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64, 64, 5, padding=2, padding_mode='reflect'),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv2 = nn.Sequential(nn.Conv2d(64, 64*2, 5, padding=2, padding_mode='reflect'),
+        self.conv2 = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 5, padding=2, padding_mode='reflect'),
+                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv3 = nn.Sequential(nn.Conv2d(64, 64*2, 5, padding=2, padding_mode='reflect'),
+        self.conv3 = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 5, padding=2, padding_mode='reflect'),
+                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
     
         self.upsample = torch.nn.PixelShuffle(2)
+
+
+        self.conv2_down = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+                                    nn.ReLU(),
+                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.ReLU())
+        self.conv3_down = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+                                    nn.ReLU(),
+                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.ReLU())
+    
+        self.downsample = torch.nn.MaxPool2d(2)
         
-        num_features = 64 + 64 + 64
+        num_features = (64 + 64 + 64) * 2
 
         self.mlp = nn.Sequential(nn.Conv2d(num_features, 512, 1),
                                 nn.ReLU(),
@@ -35,9 +47,9 @@ class Mark_1(nn.Module):
         #features_0 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_0(N,C0,H',W')
 
         x = self.conv1(x)
-        #x = self.upsample(x)
         features_1 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_1(N,C1,H',W')
-
+        x_down = self.downsample(x)
+        
         x = self.conv2(x)
         x = self.upsample(x)
         features_2 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_2(N,C2,H',W')
@@ -46,11 +58,16 @@ class Mark_1(nn.Module):
         x = self.upsample(x)
         features_3 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_3(N,C3,H',W')
         
+        features_1_down = F.grid_sample(x_down, p, mode='bicubic', align_corners=False)
+        x_down = self.downsample(self.conv2_down(x_down))
+        features_2_down = F.grid_sample(x_down, p, mode='bicubic', align_corners=False)
+        x_down = self.downsample(self.conv3_down(x_down))
+        features_3_down = F.grid_sample(x_down, p, mode='bicubic', align_corners=False)
        # x = self.conv4(x)
         #x = self.upsample(x)
         #features_4 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_4(N,C4,H',W')
 
-        features = torch.cat(( features_1, features_2, features_3), dim=1)  #features(N,C0+C1+C2+C3,H',W')
+        features = torch.cat(( features_1, features_2, features_3, features_1_down, features_2_down, features_3_down), dim=1)  #features(N,C0+C1+C2+C3,H',W')
         #features = torch.reshape(features, (features.shape[0], features.shape[2]*features.shape[3], -1)) #features(N,H'*W',C0+C1+C2+C3)
 
         out = self.mlp(features) #features(N,C,H',W')
