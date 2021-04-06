@@ -21,13 +21,13 @@ class Mark_1(nn.Module):
         self.upsample = torch.nn.PixelShuffle(2)
 
 
-        self.conv2_down = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+        self.conv2_down = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
-        self.conv3_down = nn.Sequential(nn.Conv2d(64, 64*2, 3, padding=1, padding_mode='reflect'),
+        self.conv3_down = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU(),
-                                    nn.Conv2d(64*2, 64*4, 3, padding=1, padding_mode='reflect'),
+                                    nn.Conv2d(64, 64, 3, padding=1, padding_mode='reflect'),
                                     nn.ReLU())
     
         self.downsample = torch.nn.MaxPool2d(2)
