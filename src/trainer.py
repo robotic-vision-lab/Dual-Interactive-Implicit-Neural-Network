@@ -79,7 +79,7 @@ class Trainer(object):
                         if self.device == 0:
                             self.update_checkpoint()
                     if self.device == 0:
-                        self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
+                        self.writer.add_scalar('val_loss/epoch', val_loss/len(self.val_loader), epoch)
 
     def update_checkpoint(self):
         if self.last_checkpoint is not None:

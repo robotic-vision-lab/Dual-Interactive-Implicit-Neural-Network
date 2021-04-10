@@ -1,5 +1,5 @@
 import os
-from model import Mark_1
+from model import Mark_1, Mark_2
 from trainer import Trainer
 from dataset import DIV2K
 import argparse
@@ -13,10 +13,10 @@ parser = argparse.ArgumentParser(
     description='Train Driver'
 )
 
-parser.add_argument('--model' , default='Mark_1', type=str)
+parser.add_argument('--model' , default='Mark_2', type=str)
 parser.add_argument('--n_gpus' , default=1, type=int)
 parser.add_argument('--scale_factor' , default=4, type=int)
-parser.add_argument('--batch_size' , default=None, type=int)
+parser.add_argument('--batch_size' , default=1, type=int)
 parser.add_argument('--optimizer' , default='Adam', type=str)
 parser.add_argument('--learning_rate' , default=0.001, type=float)
 parser.add_argument('--momentum' , default=0.9, type=float)
@@ -44,7 +44,9 @@ def demo(rank, world_size):
 
     if args.model == 'Mark_1':
         model = Mark_1().to(rank)
-        ddp_model = DDP(model, device_ids=[rank])
+    elif args.model == 'Mark_2':
+        model = Mark_2().to(rank)
+    ddp_model = DDP(model, device_ids=[rank])
 
     if args.optimizer == 'SDG':
         optimizer = torch.optim.SGD(ddp_model.parameters(), lr=args.learning_rate, momentum=args.momentum)

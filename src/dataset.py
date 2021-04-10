@@ -1,7 +1,9 @@
 import os
 import torch
 import torchvision
+import random
 from torchvision import transforms as T
+import torchvision.transforms.functional as TF
 from torch.nn import functional as F
 import PIL
 torch.manual_seed(37)
@@ -29,6 +31,14 @@ class RandomCrop(object):
         left = torch.randint(0, w - new_w, ())
         image = image[:, top: top + new_h, left: left + new_w]
         return image
+
+class Rotation(object):
+    def __init__(self, angles):
+        self.angles = angles
+    
+    def __call__(self, x):
+        angle = random.choice(self.angles)
+        return TF.rotate(x, angle, interpolation=T.InterpolationMode.BILINEAR)
 
 
 class DIV2K(torch.utils.data.Dataset):
@@ -58,40 +68,29 @@ class DIV2K(torch.utils.data.Dataset):
         'Generates one sample of data'
         img_path = self.img_paths[idx]
         img = torchvision.io.read_image(img_path).float()/255
-        lr_imgs = []
-        points = []
-        gts = []
         if self.partition == 'valid' and self.eval==True:
-            if self.transform:
-                transform = T.Compose([T.FiveCrop((128,256))])
-                imgs = transform(img)
-            for img in imgs:
-                lr_imgs.append(T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
-                h = img.shape[1]
-                w = img.shape[2]
-                h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
-                w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
-                points.append(torch.cat((w_idx, h_idx), -1))
-            lr_imgs = torch.stack(lr_imgs)
-            points = torch.stack(points)
-            imgs = torch.stack(imgs)
-            return lr_imgs, points, imgs
+            lr_img = T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
+            h = img.shape[1]
+            w = img.shape[2]
+            h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
+            w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
+            p = torch.cat((w_idx, h_idx), -1)
+            return lr_img, p, img
         else:
             if self.transform:
-                transform = T.Compose([RandomCrop(256), T.TenCrop((128, 128))])
-                imgs = transform(img)
-            s = torch.randint(2, self.downscale_factor + 1, ())
-            for img in imgs:
-                lr_imgs.append(T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
-                img = img.unsqueeze(0) #(1,C,H,W)
-                p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-                gt = F.grid_sample(img, p, mode='bicubic', align_corners=False) #(1,C,num_points,1)
-                points.append(p.squeeze(0))
-                gts.append(gt.squeeze(0))
-            lr_imgs = torch.stack(lr_imgs)
-            points = torch.stack(points)
-            gts = torch.stack(gts)
-            return lr_imgs, points, gts
+                transform = T.Compose([T.RandomApply([Rotation([90])]),
+                                        T.RandomHorizontalFlip(),
+                                        RandomCrop(400)])
+                img = transform(img)
+            if self.partition == 'valid':
+                s = self.downscale_factor
+            else:
+                s = torch.randint(1, self.downscale_factor + 1, ())
+            lr_img = T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
+            img = img.unsqueeze(0) #(1,C,H,W)
+            p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
+            gt = F.grid_sample(img, p, mode='nearest', align_corners=False) #(1,C,num_points,1)
+            return lr_img, p.squeeze(0), gt.squeeze(0)
 
 if __name__ == '__main__':
     dataset = DIV2K()
