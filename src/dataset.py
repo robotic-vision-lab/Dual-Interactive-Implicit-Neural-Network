@@ -55,6 +55,8 @@ class DIV2K(torch.utils.data.Dataset):
         self.transform = transform
         self.eval = eval
         self.img_paths = []
+        self.means = [0.4488, 0.4371, 0.4040]
+        self.std = [0.2845, 0.2701, 0.2920]
         for root, dirs, files in os.walk(os.path.join(self.dir)):
             for filename in files:
                 if filename.lower().endswith('.png'):
@@ -69,24 +71,29 @@ class DIV2K(torch.utils.data.Dataset):
         img_path = self.img_paths[idx]
         img = torchvision.io.read_image(img_path).float()/255
         if self.partition == 'valid' and self.eval==True:
-            lr_img = T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
-            h = img.shape[1]
-            w = img.shape[2]
+            imgs = T.FiveCrop(512)(img)
+            lr_imgs = []
+            for img in imgs:
+                lr_imgs.append(T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
+            #h = img.shape[1]
+            #w = img.shape[2]
+            lr_imgs = torch.stack(lr_imgs)
+            h = 512
+            w = 512
             h_idx = torch.arange(-1 + 1/h, 1 + 1/h, 2/h).repeat(w,1).T.unsqueeze(-1)
             w_idx = torch.arange(-1 + 1/w, 1 + 1/w, 2/w).repeat(h,1).unsqueeze(-1)
             p = torch.cat((w_idx, h_idx), -1)
-            return lr_img, p, img
+            filenames = [os.path.basename(img_path).split(sep='.')[0]+'_'+str(i)+'.png' for i in range(5)]
+            return lr_imgs, p.unsqueeze(0).expand(5,-1,-1,-1), imgs, filenames
         else:
             if self.transform:
                 transform = T.Compose([T.RandomApply([Rotation([90])]),
                                         T.RandomHorizontalFlip(),
                                         RandomCrop(400)])
                 img = transform(img)
-            if self.partition == 'valid':
-                s = self.downscale_factor
-            else:
-                s = torch.randint(1, self.downscale_factor + 1, ())
+            s = self.downscale_factor
             lr_img = T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
+            lr_img = T.Normalize(mean=[0.4488, 0.4371, 0.4040], std=[0.2845, 0.2701, 0.2920])(lr_img)
             img = img.unsqueeze(0) #(1,C,H,W)
             p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
             gt = F.grid_sample(img, p, mode='nearest', align_corners=False) #(1,C,num_points,1)

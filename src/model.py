@@ -98,11 +98,55 @@ class Mark_2(nn.Module):
 
         return out
 
+class Mark_3(nn.Module):
+    def __init__(self, in_channels=3):
+        super(Mark_3, self).__init__()
+        self.conv0 = nn.Sequential(nn.Conv2d(in_channels, 256, 3, padding=1),
+                                    nn.ReLU())
+        
+        self.conv1 = nn.Sequential(nn.Conv2d(256, 256, 3, padding=1),
+                                    nn.ReLU(),
+                                    nn.Conv2d(256, 256, 3, padding=1))
+                                  
+        self.conv2 = nn.Sequential(nn.Conv2d(256, 256, 3, padding=1),
+                                    nn.ReLU(),
+                                    nn.Conv2d(256, 256, 3, padding=1))
+        
+        self.conv3 = nn.Sequential(nn.Conv2d(256, 256, 3, padding=1),
+                                    nn.ReLU(),
+                                    nn.Conv2d(256, 256, 3, padding=1))
+
+        self.downsample = nn.MaxPool2d(2)
+
+        num_features = 256 + 256 + 256
+
+        self.mlp = nn.Sequential(nn.Conv2d(num_features, 256*3, 1),
+                                nn.ReLU(),
+                                nn.Conv2d(256*3, 256*3, 1),
+                                nn.ReLU(),
+                                nn.Conv2d(256*3, 3, 1), 
+                                nn.Sigmoid()) #if want RGB out change last output channel to 3
+
+    def forward(self, x, p):
+        #images x(N,C,H,W) and sample points p(N,H',W',2)
+        #note that p specifies (x,y) corresponding to H[y]W[x]
+        #features_0 = F.grid_sample(x, p, mode='bicubic', align_corners=False) #features_0(N,C0,H',W')
+        x = self.conv0(x)
+        x = self.conv1(x) + x
+        features_1 = F.grid_sample(x, p, mode='bilinear', align_corners=False)
+        x = self.downsample(x)
+        x = self.conv2(x) + x
+        features_2 = F.grid_sample(x, p, mode='bilinear', align_corners=False)
+        x = self.downsample(x)
+        x = self.conv3(x) + x
+        features_3 = F.grid_sample(x, p, mode='bilinear', align_corners=False)
+
+        features = torch.cat((features_1, features_2, features_3), dim=1)
+
+        out = self.mlp(features)
+
+        return out
 
 if __name__ == '__main__':
-    from dataset import SRx4Dataset
-    dataset = SRx4Dataset()
-    img, p, gt = dataset[0]
-    net = Mark_1()
-    print(net(img.unsqueeze(0),p.unsqueeze(0)).size())
+    net = Mark_2()
     print(sum(p.numel() for p in net.parameters() if p.requires_grad))

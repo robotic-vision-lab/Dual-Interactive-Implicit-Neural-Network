@@ -1,5 +1,5 @@
 import os
-from model import Mark_1, Mark_2
+from model import Mark_1, Mark_2, Mark_3
 from trainer import Trainer
 from dataset import DIV2K
 import argparse
@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(
     description='Train Driver'
 )
 
-parser.add_argument('--model' , default='Mark_2', type=str)
+parser.add_argument('--model', type=str)
 parser.add_argument('--n_gpus' , default=1, type=int)
 parser.add_argument('--scale_factor' , default=4, type=int)
 parser.add_argument('--batch_size' , default=1, type=int)
@@ -29,29 +29,22 @@ try:
 except:
     args = parser.parse_known_args()[0]
 
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '142857'
+if __name__ == '__main__':
 
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size)
-
-def cleanup():
-    dist.destroy_process_group()
-
-def demo(rank, world_size):
-    setup(rank, world_size)
+    rank = 'cuda'
 
     if args.model == 'Mark_1':
         model = Mark_1().to(rank)
     elif args.model == 'Mark_2':
         model = Mark_2().to(rank)
-    ddp_model = DDP(model, device_ids=[rank])
+    elif args.model == 'Mark_3':
+        model = Mark_3().to(rank)
+
 
     if args.optimizer == 'SDG':
-        optimizer = torch.optim.SGD(ddp_model.parameters(), lr=args.learning_rate, momentum=args.momentum)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
     if args.optimizer == 'Adam':
-        optimizer = torch.optim.Adam(ddp_model.parameters(), lr=args.learning_rate)
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5)
 
@@ -59,25 +52,10 @@ def demo(rank, world_size):
 
     train_data = DIV2K(root_dir=args.data_dir, partition='train', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
     val_data = DIV2K(root_dir=args.data_dir, partition='valid', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=5)
+    val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=5)
 
     exp_name = '{}_x{}_{}_{}_{}'.format(args.model, args.scale_factor, args.num_point_samples, args.optimizer, args.learning_rate)
     print(exp_name)
     trainer = Trainer(model, rank, train_loader, val_loader, optimizer, scheduler, loss_fn, exp_name)
     trainer.train(args.num_epochs)
-
-    cleanup()
-
-def run_demo(demo_fn, world_size):
-    mp.spawn(demo_fn,
-             args=(world_size,),
-             nprocs=world_size,
-             join=True)
-
-if __name__ == "__main__":
-    n_gpus = torch.cuda.device_count()
-    if n_gpus < args.n_gpus:
-        print(f"Requires at least {args.n_gpus} GPUs to run, but got {n_gpus}.")
-    else:
-        run_demo(demo, args.n_gpus)
