@@ -16,13 +16,12 @@ class Trainer(object):
         self.scheduler = scheduler
         self.loss_fn = loss_fn
         self.exp_path = os.path.join('experiments', exp_name)
-        if self.device == 0: 
-            if not os.path.exists(self.exp_path):
-                print(self.exp_path)
-                os.makedirs(self.exp_path)
-            else:
-                for f in os.listdir(self.exp_path):
-                    os.remove(os.path.join(self.exp_path, f))
+        if not os.path.exists(self.exp_path):
+            print(self.exp_path)
+            os.makedirs(self.exp_path)
+        else:
+            for f in os.listdir(self.exp_path):
+                os.remove(os.path.join(self.exp_path, f))
         self.writer = SummaryWriter(self.exp_path)
         self.val_min = None
         self.last_checkpoint=None
@@ -60,8 +59,7 @@ class Trainer(object):
                     loss = self.train_step(batch)
                     train_loss += loss
                     tepoch.set_postfix(loss=train_loss/(i+1))
-                if self.device == 0:
-                    self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
+                self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
                 
                 with tqdm(self.val_loader, unit='batch') as vepoch:
                     vepoch.set_description(f"Valid {epoch}")
@@ -71,19 +69,20 @@ class Trainer(object):
                         loss = self.compute_loss(batch)
                         val_loss += loss.item()
                         vepoch.set_postfix(loss=val_loss/(i+1))
-                    self.scheduler.step(val_loss)
                     if self.val_min is None:
                         self.val_min = val_loss
+                        self.update_checkpoint()
                     elif val_loss < self.val_min:
                         self.val_min = val_loss
-                        if self.device == 0:
-                            self.update_checkpoint()
-                    if self.device == 0:
-                        self.writer.add_scalar('val_loss/epoch', val_loss/len(self.val_loader), epoch)
+                        self.update_checkpoint()
+                    elif epoch % 10 ==0:
+                        self.update_checkpoint()
+                    self.writer.add_scalar('val_loss/epoch', val_loss/len(self.val_loader), epoch)
+            self.scheduler.step()
 
     def update_checkpoint(self):
         if self.last_checkpoint is not None:
             os.remove(self.last_checkpoint)
-        path = os.path.join(self.exp_path, 'checkpoint')
+        path = os.path.join(self.exp_path, 'checkpoint_','%.4f'.format(self.val_min))
         torch.save(self.model.state_dict(), path)
         self.last_checkpoint = path

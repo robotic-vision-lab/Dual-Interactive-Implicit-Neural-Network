@@ -74,7 +74,9 @@ class DIV2K(torch.utils.data.Dataset):
             imgs = T.FiveCrop(512)(img)
             lr_imgs = []
             for img in imgs:
-                lr_imgs.append(T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img))
+                lr_img = T.Resize((img.shape[1]//self.downscale_factor, img.shape[2]//self.downscale_factor), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
+                lr_img = T.Normalize(mean=[0.4488, 0.4371, 0.4040], std=[0.2845, 0.2701, 0.2920])(lr_img)
+                lr_imgs.append(lr_img)
             #h = img.shape[1]
             #w = img.shape[2]
             lr_imgs = torch.stack(lr_imgs)
@@ -89,14 +91,16 @@ class DIV2K(torch.utils.data.Dataset):
             if self.transform:
                 transform = T.Compose([T.RandomApply([Rotation([90])]),
                                         T.RandomHorizontalFlip(),
-                                        RandomCrop(400)])
+                                        RandomCrop(512)])
                 img = transform(img)
-            s = self.downscale_factor
+            s = random.randint(2, self.downscale_factor)
+            if self.partition == 'valid':
+                s = self.downscale_factor
             lr_img = T.Resize((img.shape[1]//s, img.shape[2]//s), interpolation=torchvision.transforms.InterpolationMode.BICUBIC)(img)
             lr_img = T.Normalize(mean=[0.4488, 0.4371, 0.4040], std=[0.2845, 0.2701, 0.2920])(lr_img)
             img = img.unsqueeze(0) #(1,C,H,W)
             p = 1.0 - 2 * torch.rand(1, self.num_points, 1, 2) #(1,num_points,1,2), value range (-1,1)
-            gt = F.grid_sample(img, p, mode='nearest', align_corners=False) #(1,C,num_points,1)
+            gt = F.grid_sample(img, p, mode='bilinear', align_corners=False) #(1,C,num_points,1)
             return lr_img, p.squeeze(0), gt.squeeze(0)
 
 if __name__ == '__main__':

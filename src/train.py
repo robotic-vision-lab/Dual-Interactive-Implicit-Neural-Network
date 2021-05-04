@@ -1,5 +1,5 @@
 import os
-from model import Mark_1, Mark_2, Mark_3
+from model import Mark_1, Mark_2, Mark_3, Mark_4
 from trainer import Trainer
 from dataset import DIV2K
 import argparse
@@ -39,6 +39,8 @@ if __name__ == '__main__':
         model = Mark_2().to(rank)
     elif args.model == 'Mark_3':
         model = Mark_3().to(rank)
+    elif args.model == 'Mark_4':
+        model = Mark_4().to(rank)
 
 
     if args.optimizer == 'SDG':
@@ -46,12 +48,13 @@ if __name__ == '__main__':
     if args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
 
     loss_fn = torch.nn.L1Loss(reduction='mean')
 
     train_data = DIV2K(root_dir=args.data_dir, partition='train', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
     val_data = DIV2K(root_dir=args.data_dir, partition='valid', downscale_factor=args.scale_factor, num_points=args.num_point_samples)
+    #sub_train = torch.utils.data.Subset(train_data, [1,2,3])
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=5)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=5)
 
