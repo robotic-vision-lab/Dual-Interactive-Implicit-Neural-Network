@@ -59,7 +59,8 @@ class Trainer(object):
                     loss = self.train_step(batch)
                     train_loss += loss
                     tepoch.set_postfix(loss=train_loss/(i+1))
-                self.writer.add_scalar('train_loss/epoch', train_loss/len(self.train_loader), epoch)
+                train_loss /= len(self.train_loader)
+                self.writer.add_scalar('train_loss/epoch', train_loss, epoch)
                 
                 with tqdm(self.val_loader, unit='batch') as vepoch:
                     vepoch.set_description(f"Valid {epoch}")
@@ -69,20 +70,20 @@ class Trainer(object):
                         loss = self.compute_loss(batch)
                         val_loss += loss.item()
                         vepoch.set_postfix(loss=val_loss/(i+1))
+                    val_loss /= len(self.val_loader)
                     if self.val_min is None:
                         self.val_min = val_loss
-                        self.update_checkpoint()
-                    elif val_loss < self.val_min:
+                        #self.update_checkpoint()
+                    if val_loss < self.val_min:
                         self.val_min = val_loss
                         self.update_checkpoint()
-                    elif epoch % 10 ==0:
-                        self.update_checkpoint()
-                    self.writer.add_scalar('val_loss/epoch', val_loss/len(self.val_loader), epoch)
+                    self.writer.add_scalar('val_loss/epoch', val_loss, epoch)
             self.scheduler.step()
+            torch.save(self.model.state_dict(), os.path.join(self.exp_path, 'checkpoint_latest'))
 
     def update_checkpoint(self):
         if self.last_checkpoint is not None:
             os.remove(self.last_checkpoint)
-        path = os.path.join(self.exp_path, 'checkpoint_','%.4f'.format(self.val_min))
+        path = os.path.join(self.exp_path, 'checkpoint_%.4f'%(self.val_min))
         torch.save(self.model.state_dict(), path)
         self.last_checkpoint = path

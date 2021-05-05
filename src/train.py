@@ -1,5 +1,5 @@
 import os
-from model import Mark_1, Mark_2, Mark_3, Mark_4
+from model import Mark_1, Mark_2, Mark_3, Mark_4, UNet
 from trainer import Trainer
 from dataset import DIV2K
 import argparse
@@ -41,6 +41,8 @@ if __name__ == '__main__':
         model = Mark_3().to(rank)
     elif args.model == 'Mark_4':
         model = Mark_4().to(rank)
+    elif args.model == 'Unet':
+        model = UNet().to(rank)
 
 
     if args.optimizer == 'SDG':

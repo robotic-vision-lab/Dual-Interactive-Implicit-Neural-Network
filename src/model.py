@@ -192,7 +192,89 @@ class MultiHeadGATLayer(nn.Module):
         if self.merge == 'cat':
             # concat on the output feature dimension (dim=1)
             return torch.cat(head_outs, dim=1) #(N,C*K,H,1)
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Sequential(nn.Conv2d(in_channels, hidden_channels, 3, padding=1),
+                                    nn.ReLU(),
+                                    nn.Conv2d(hidden_channels, out_channels, 3, padding=1))
+    
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+
+class UDown(nn.Module):
+    def __init__(self, in_channels):
+        super(UDown, self).__init__()
+        self.downsample = nn.Sequential(nn.Conv2d(in_channels, in_channels, 2, 2),
+                                        nn.ReLU())
+
+    def forward(self, x):
+        x = self.downsample(x)
+        return x
+
+class UUp(nn.Module):
+    def __init__(self):
+        super(UUp, self).__init__()
+        self.upsample = nn.PixelShuffle(2)
+
+    def forward(self, x):
+        x = self.upsample(x)
+        return x
+
+class UNet(nn.Module):
+    def __init__(self, in_channels=3):
+        super(UNet, self).__init__()
+        self.convblock1 = ConvBlock(in_channels, 64, 64)
+        self.down1 = UDown(64)
+        self.convblock2 = ConvBlock(64, 128, 128)
+        self.down2 = UDown(128)
+        self.convblock3 = ConvBlock(128, 256, 256)
+        self.down3 = UDown(256)
+        self.convblock4 = ConvBlock(256, 512, 1024)
+        self.up = UUp()
+        self.convblock5 = ConvBlock(512,512,512)
+        self.convblock6 = ConvBlock(256,256,256)
+        self.convblock7 = ConvBlock(128,128,128)
         
+        num_heads = 4
+        self.gat1 = MultiHeadGATLayer(128, 256, num_heads, merge='cat')
+        self.mlp = nn.Sequential(nn.Conv2d(256*num_heads, 1024, 1),
+                                nn.ReLU(),
+                                nn.Conv2d(1024, 512, 1),
+                                nn.ReLU(),
+                                nn.Conv2d(512, 256, 1),
+                                nn.ReLU(),
+                                nn.Conv2d(256, 3, 1),
+                                nn.Sigmoid()) #if want RGB out change last output channel to 3
+
+        d = 0.003
+        self.displacement = torch.Tensor([[0, 0], [-d, -d], [d, d], [d, -d], [-d, d]]).cuda()
+
+
+    def forward(self, x, p):
+        d = 1.0/x.shape[2]
+        self.displacement = torch.Tensor([[0, 0], [-d, -d], [d, d], [d, -d], [-d, d]]).cuda()
+        p = torch.cat([p + d for d in self.displacement], dim=2) #(N,num_points,5,2)
+        x1 = self.convblock1(x)                     #64
+        x2 = self.convblock2(self.down1(F.relu(x1))) #128
+        x3 = self.convblock3(self.down2(F.relu(x2))) #256
+        x4 = self.convblock4(self.down3(F.relu(x3))) #1024
+
+        x3 = torch.cat((x3, self.up(x4)), dim=1)    #256+256=512
+        x3 = F.relu(self.convblock5(x3))
+        x2 = torch.cat((x2, self.up(x3)), dim=1)    #128+128=256
+        x2 = F.relu(self.convblock6(x2))
+        x1 = torch.cat((x1, self.up(x2)), dim=1)    #64+64=128
+        x1 = F.relu(self.convblock7(x1))
+        features = F.grid_sample(x1, p, mode='bilinear', align_corners=False) #(N, C, num_points, num_neighbors+1)
+        features = F.relu(self.gat1(features)) #(N, C, num_points, 1)
+        out = self.mlp(features)
+        return out
+
+
 class Mark_4(nn.Module):
     def __init__(self, in_channels=3):
         super(Mark_4, self).__init__()

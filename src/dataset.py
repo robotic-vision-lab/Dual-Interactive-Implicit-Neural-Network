@@ -91,7 +91,7 @@ class DIV2K(torch.utils.data.Dataset):
             if self.transform:
                 transform = T.Compose([T.RandomApply([Rotation([90])]),
                                         T.RandomHorizontalFlip(),
-                                        RandomCrop(512)])
+                                        RandomCrop(576)])
                 img = transform(img)
             s = random.randint(2, self.downscale_factor)
             if self.partition == 'valid':
