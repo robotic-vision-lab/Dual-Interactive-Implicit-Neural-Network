@@ -1,5 +1,5 @@
 import os
-from model import Mark_1, Mark_2, Mark_3, Mark_4, UNet
+from model import Mark_2, Mark_3, Mark_4, UNet
 from trainer import Trainer
 from dataset import DIV2K
 import argparse
