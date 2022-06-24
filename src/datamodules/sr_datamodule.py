@@ -100,8 +100,7 @@ class SRDataModule(LightningDataModule):
                             bin=self.hparams.bin,
                             scales=self.hparams.scales,
                             patch_size=self.hparams.patch_size)
-
-            self.data_train = Subset(trainset, indices=range(800))
+            self.data_train = ConcatDataset([Subset(trainset, indices=range(800)) for _ in range(50)])
             self.data_test = Subset(trainset, indices=range(800, len(trainset)))
 
     def train_dataloader(self):
