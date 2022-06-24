@@ -47,11 +47,12 @@ class SRLitModule(LightningModule):
         #self.val_psnr_best = MaxMetric()
 
     def quantize(self, img):
-        return img.mul(255).clamp(0, 255).round().div(255)
+        return img.clamp(0, 255).round()
 
     def pre_psnr_processing(self, img, scale):
         gray_coeffs = [65.738, 129.057, 25.064]
         convert = img.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
+        img = img / 255
         img = img.mul(convert).sum(dim=1)
         shave = scale + 6
         return img[...,shave:-shave, shave:-shave]
@@ -132,7 +133,7 @@ class SRLitModule(LightningModule):
             https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
         """
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=20, gamma=0.5, verbose=True)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=20, gamma=0.5)
         return [optimizer], [scheduler]
 
 

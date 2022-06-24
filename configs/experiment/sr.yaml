@@ -5,7 +5,7 @@
 
 defaults:
   - override /datamodule: srdata.yaml
-  - override /model: srmodel.yaml
+  - override /model: edsr.yaml
   - override /callbacks: default.yaml
   - override /trainer: default.yaml
   - override /logger: many_loggers.yaml

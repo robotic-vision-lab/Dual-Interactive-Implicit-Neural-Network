@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class IMSISR(nn.Module):
-    def __init__(self, in_channels, n_resblocks, n_feats, kernel_size, res_scale=1., rgb_range=1., conv=common.default_conv):
+    def __init__(self, in_channels, n_resblocks, n_feats, kernel_size, res_scale=1., rgb_range=255., conv=common.default_conv):
         super(IMSISR, self).__init__()
 
         n_resblocks = n_resblocks

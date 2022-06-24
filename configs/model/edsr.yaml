@@ -1,0 +1,5 @@
+_target_: src.models.sr_module.SRLitModule
+net:
+  _target_: src.models.components.edsr.EDSR
+
+lr: 0.0001

@@ -68,7 +68,7 @@ class SRData(Dataset):
             if self.transforms is not None:
                 lr_patch = self.transforms(lr_patch)
                 hr_patch = self.transforms(hr_patch)
-            sample[scale] = (lr_patch.float()/255., hr_patch.float()/255., filename)
+            sample[scale] = (lr_patch.float(), hr_patch.float(), filename)
         return sample
 
     def _load_file(self, idx, scale):

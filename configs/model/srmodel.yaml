@@ -6,6 +6,6 @@ net:
   n_feats: 64
   kernel_size: 3 
   res_scale: 1.
-  rgb_range: 1.
+  rgb_range: 255
 
 lr: 0.0001
