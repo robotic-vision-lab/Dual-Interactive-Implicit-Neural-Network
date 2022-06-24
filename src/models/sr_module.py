@@ -71,10 +71,10 @@ class SRLitModule(LightningModule):
         loss, pred_hrs, hrs = self.step(batch)
 
         # log train metrics
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
             psnr = self.train_psnr(pred_hrs[scale], hrs[scale])
-            self.log("train/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("train/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
@@ -89,10 +89,10 @@ class SRLitModule(LightningModule):
         loss, pred_hrs, hrs = self.step(batch)
 
         # log val metrics
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
             psnr = self.val_psnr(pred_hrs[scale], hrs[scale])
-            self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs: List[Any]):
@@ -102,10 +102,10 @@ class SRLitModule(LightningModule):
         loss, pred_hrs, hrs = self.step(batch)
 
         # log test metrics
-        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
             psnr = self.val_psnr(pred_hrs[scale], hrs[scale])
-            self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
     def test_epoch_end(self, outputs: List[Any]):
