@@ -1,0 +1,8 @@
+_target_: src.datamodules.sr_datamodule.SRDataModule
+root: ${data_dir}
+name: "DIV2K"
+batch_size: 16
+scales: [2,3,4]
+patch_size: 96
+num_workers: 0
+pin_memory: False
