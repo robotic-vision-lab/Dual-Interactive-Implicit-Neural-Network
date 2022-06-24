@@ -47,7 +47,14 @@ class SRLitModule(LightningModule):
         #self.val_psnr_best = MaxMetric()
 
     def quantize(self, img):
-        return img.mul(255).clamp(0, 255).round().div(255) 
+        return img.mul(255).clamp(0, 255).round().div(255)
+
+    def pre_psnr_processing(self, img, scale):
+        gray_coeffs = [65.738, 129.057, 25.064]
+        convert = img.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
+        img = img.mul(convert).sum(dim=1)
+        shave = scale + 6
+        return img[...,shave:-shave, shave:-shave]
 
     def forward(self, x: torch.Tensor, scale):
         return self.net(x, scale)
@@ -76,7 +83,8 @@ class SRLitModule(LightningModule):
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.train_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
+            psnr = self.train_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
+                                    self.pre_psnr_processing(hrs[scale], scale))
             self.log("train/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # we can return here dict with any tensors
@@ -94,7 +102,8 @@ class SRLitModule(LightningModule):
         # log val metrics
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.val_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
+            psnr = self.val_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
+                                self.pre_psnr_processing(hrs[scale], scale))
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
@@ -107,7 +116,8 @@ class SRLitModule(LightningModule):
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.val_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
+            psnr = self.val_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
+                                self.pre_psnr_processing(hrs[scale], scale))
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
