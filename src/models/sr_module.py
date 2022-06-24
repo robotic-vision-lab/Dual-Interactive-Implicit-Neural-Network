@@ -46,6 +46,9 @@ class SRLitModule(LightningModule):
         # for logging best so far validation accuracy
         #self.val_psnr_best = MaxMetric()
 
+    def quantize(self, img):
+        return img.mul(255).clamp(0, 255).round().div(255) 
+
     def forward(self, x: torch.Tensor, scale):
         return self.net(x, scale)
 
@@ -73,7 +76,7 @@ class SRLitModule(LightningModule):
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.train_psnr(pred_hrs[scale], hrs[scale])
+            psnr = self.train_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
             self.log("train/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # we can return here dict with any tensors
@@ -91,7 +94,7 @@ class SRLitModule(LightningModule):
         # log val metrics
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.val_psnr(pred_hrs[scale], hrs[scale])
+            psnr = self.val_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
@@ -104,7 +107,7 @@ class SRLitModule(LightningModule):
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.val_psnr(pred_hrs[scale], hrs[scale])
+            psnr = self.val_psnr(self.quantize(pred_hrs[scale]), hrs[scale])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
