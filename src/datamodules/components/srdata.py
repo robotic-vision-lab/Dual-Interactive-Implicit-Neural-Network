@@ -113,6 +113,8 @@ class SRData(Dataset):
         #scale must be int
         #if patch_size is set to 0, use whole images
         if patch_size == 0:
+            lr_h, lr_w = lr.shape[-2:]
+            hr = hr[:, 0:lr_h * scale, 0:lr_w * scale]
             return lr, hr
         else:
             lr_h, lr_w = lr.shape[-2:]

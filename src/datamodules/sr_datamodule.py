@@ -100,8 +100,14 @@ class SRDataModule(LightningDataModule):
                             bin=self.hparams.bin,
                             scales=self.hparams.scales,
                             patch_size=self.hparams.patch_size)
+            testset = SRData(root=self.hparams.root,
+                            name=self.hparams.name,
+                            split='train',
+                            bin=self.hparams.bin,
+                            scales=self.hparams.scales,
+                            patch_size=0)
             self.data_train = ConcatDataset([Subset(trainset, indices=range(800)) for _ in range(20)])
-            self.data_test = ConcatDataset([Subset(trainset, indices=range(800, 810))] for _ in range(160))
+            self.data_test = Subset(testset, indices=range(800, 810))
 
     def train_dataloader(self):
         return DataLoader(
@@ -115,7 +121,7 @@ class SRDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_test,
-            batch_size=self.hparams.batch_size,
+            batch_size=1,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
@@ -124,7 +130,7 @@ class SRDataModule(LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             dataset=self.data_test,
-            batch_size=self.hparams.batch_size,
+            batch_size=1,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
