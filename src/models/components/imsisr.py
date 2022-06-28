@@ -97,8 +97,8 @@ class ImplicitDecoder(nn.Module):
     def forward(self, x, scale_factor):
         #input x(B,F,H,W) image representations
         p = self._make_pos_encoding(x, scale_factor) #2
-        x = F.interpolate(x, scale_factor=scale_factor, mode='bilinear', align_corners=False) #64
-        h = self.modulate[0](x) #128
+        #x = F.interpolate(x, scale_factor=scale_factor, mode='bilinear', align_corners=False) #64
+        h = F.interpolate(self.modulate[0](x), scale_factor=scale_factor, mode='bilinear', align_corners=False) #128
         p = self.synthesis[0](p)
         for i in range(1, len(self.synthesis)):
             h = self.modulate[i](h) #128
