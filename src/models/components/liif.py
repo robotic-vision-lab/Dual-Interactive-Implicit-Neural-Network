@@ -11,13 +11,13 @@ def make_grid(size, offset=[0, 0], device='cuda'):
     if offset == [0, 0]:
         h_idx = - 1 + 1/H + 2*(1/H)*torch.arange(H, device=device) 
         w_idx = - 1 + 1/W + 2*(1/W)*torch.arange(W, device=device)
-        return torch.stack(torch.meshgrid(h_idx, w_idx), dim=-1) #flip since w is x and h is y, output_shape [H, W, 2]
+        return torch.stack(torch.meshgrid(h_idx, w_idx, indexing='ij'), dim=-1) 
     else:
         h_offset = offset[0]/H + offset[0]*1e-6
         w_offset = offset[1]/W + offset[1]*1e-6
         h_idx = h_offset - 1 + 1/H + 2*(1/H)*torch.arange(H, device=device) 
         w_idx = w_offset - 1 + 1/W + 2*(1/W)*torch.arange(W, device=device)
-        return torch.stack(torch.meshgrid(h_idx, w_idx), dim=-1).clamp_(-1 + 1e-6, 1 - 1e-6) #flip since w is x and h is y, output_shape [H, W, 2]
+        return torch.stack(torch.meshgrid(h_idx, w_idx, indexing='ij'), dim=-1).clamp_(-1 + 1e-6, 1 - 1e-6) 
     
 class LIIF(nn.Module):
     def __init__(self,

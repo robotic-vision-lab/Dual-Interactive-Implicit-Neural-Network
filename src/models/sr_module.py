@@ -104,7 +104,7 @@ class SRLitModule(LightningModule):
 
     def training_epoch_end(self, outputs: List[Any]):
         # `outputs` is a list of dicts returned from `training_step()`
-        self.train_psnr.reset()
+        pass
 
     def validation_step(self, batch: Any, batch_idx: int):
         loss, pred_hrs = self.step(batch)
