@@ -60,8 +60,8 @@ class SRLitModule(LightningModule):
         self.net = make_net('liif')
 
         #data norm
-        self.sub = torch.FloatTensor([0.5]).view(1, -1, 1, 1)
-        self.div = torch.FloatTensor([0.5]).view(1, -1, 1, 1)
+        self.sub = torch.FloatTensor([0.5], device=self.device).view(1, -1, 1, 1)
+        self.div = torch.FloatTensor([0.5], device=self.device).view(1, -1, 1, 1)
         # loss function
         self.criterion = torch.nn.L1Loss()
 
@@ -92,7 +92,7 @@ class SRLitModule(LightningModule):
         return loss, pred_hrs
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss, pred_hrs, hrs = self.step(batch)
+        loss, _= self.step(batch)
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
