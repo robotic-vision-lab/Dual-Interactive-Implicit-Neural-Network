@@ -76,7 +76,14 @@ class SRDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        pass
+        SRData(root=self.hparams.root,
+                                name='DIV2K',
+                                split='train',
+                                bin=self.hparams.bin,
+                                reset_bin=self.hparams.reset_bin,
+                                scales=self.hparams.scales,
+                                patch_size=self.hparams.patch_size,
+                                augment=True)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -93,7 +100,6 @@ class SRDataModule(LightningDataModule):
                                 name=name,
                                 split=split,
                                 bin=self.hparams.bin,
-                                reset_bin=self.hparams.reset_bin,
                                 scales=self.hparams.scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=True), indices=range(800)))
@@ -102,7 +108,6 @@ class SRDataModule(LightningDataModule):
                                 name=name,
                                 split=split,
                                 bin=self.hparams.bin,
-                                reset_bin=self.hparams.reset_bin,
                                 scales=self.hparams.scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=True))
