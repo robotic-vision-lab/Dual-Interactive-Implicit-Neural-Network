@@ -1,9 +1,28 @@
 from typing import Any, List
-
+from functools import partial
 import torch
 from pytorch_lightning import LightningModule
 from src.models.components.liif import LIIF
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
+
+def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
+    diff = (sr - hr) / rgb_range
+    if dataset is not None:
+        if dataset == 'benchmark':
+            shave = scale
+            if diff.size(1) > 1:
+                gray_coeffs = [65.738, 129.057, 25.064]
+                convert = diff.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
+                diff = diff.mul(convert).sum(dim=1)
+        elif dataset == 'div2k':
+            shave = scale + 6
+        else:
+            raise NotImplementedError
+        valid = diff[..., shave:-shave, shave:-shave]
+    else:
+        valid = diff
+    mse = valid.pow(2).mean()
+    return -10 * torch.log10(mse)
 
 def make_net(arch=None):
     if arch == 'liif':
@@ -28,7 +47,9 @@ class SRLitModule(LightningModule):
     def __init__(
         self,
         arch: str,
-        lr: float
+        lr: float = 1e-4,
+        lr_gamma: float = 0.5,
+        lr_step: int = 10
     ):
         super().__init__()
 
@@ -38,28 +59,14 @@ class SRLitModule(LightningModule):
 
         self.net = make_net('liif')
 
+        #data norm
+        self.sub = torch.FloatTensor([0.5]).view(1, -1, 1, 1)
+        self.div = torch.FloatTensor([0.5]).view(1, -1, 1, 1)
         # loss function
         self.criterion = torch.nn.L1Loss()
 
-        # use separate metric instance for train, val and test step
-        # to ensure a proper reduction over the epoch
-        self.train_psnr = PeakSignalNoiseRatio(data_range=1)
-        self.val_psnr = PeakSignalNoiseRatio(data_range=1)
-        self.test_psnr = PeakSignalNoiseRatio(data_range=1)
-
         # for logging best so far validation accuracy
         #self.val_psnr_best = MaxMetric()
-
-    def quantize(self, img):
-        return img.clamp(0, 255).round()
-
-    def pre_psnr_processing(self, img, scale):
-        gray_coeffs = [65.738, 129.057, 25.064]
-        convert = img.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
-        img = img / 255
-        img = img.mul(convert).sum(dim=1)
-        shave = scale + 6
-        return img[...,shave:-shave, shave:-shave]
 
     def forward(self, x: torch.Tensor, scale):
         return self.net(x, scale)
@@ -73,24 +80,22 @@ class SRLitModule(LightningModule):
     def step(self, batch: Any):
         loss = 0
         pred_hrs = {}
-        hrs = {}
+        #hrs = {}
         for scale in batch:
             lr, hr, _ = batch[scale]
-            pred_hr = self.forward(lr, scale)
+            lr = (lr - self.sub) / self.div
+            hr = (hr - self.sub) / self.div
+            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale])
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = pred_hr
-            hrs[scale] = hr
-        return loss, pred_hrs, hrs
+            #hrs[scale] = hr
+        return loss, (pred_hrs*self.div+self.sub).clamp_(0, 1)
 
     def training_step(self, batch: Any, batch_idx: int):
         loss, pred_hrs, hrs = self.step(batch)
 
         # log train metrics
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
-        for scale in batch:
-            psnr = self.train_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
-                                    self.pre_psnr_processing(hrs[scale], scale))
-            self.log("train/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
@@ -102,32 +107,36 @@ class SRLitModule(LightningModule):
         self.train_psnr.reset()
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, pred_hrs, hrs = self.step(batch)
+        loss, pred_hrs = self.step(batch)
 
         # log val metrics
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        
         for scale in batch:
-            psnr = self.val_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
-                                self.pre_psnr_processing(hrs[scale], scale))
+            psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, data_range=1)
+            psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs: List[Any]):
-        self.val_psnr.reset()
+        pass
 
-    def test_step(self, batch: Any, batch_idx: int):
-        loss, pred_hrs, hrs = self.step(batch)
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
+        loss, pred_hrs = self.step(batch)
 
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
-            psnr = self.val_psnr(self.pre_psnr_processing(self.quantize(pred_hrs[scale]), scale),
-                                self.pre_psnr_processing(hrs[scale], scale))
+            if dataloader_idx == 0:
+                psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, data_range=1)
+            else:
+                psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, data_range=1)
+            psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
     def test_epoch_end(self, outputs: List[Any]):
-        self.test_psnr.reset()
+        pass
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -137,15 +146,6 @@ class SRLitModule(LightningModule):
             https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
         """
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=20, gamma=0.5)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=self.hparams.lr_step, gamma=self.hparams.lr_gamma)
         return [optimizer], [scheduler]
 
-
-if __name__ == "__main__":
-    import hydra
-    import omegaconf
-    import pyrootutils
-
-    root = pyrootutils.setup_root(__file__)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "mnist.yaml")
-    _ = hydra.utils.instantiate(cfg)

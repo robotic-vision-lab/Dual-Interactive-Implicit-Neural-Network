@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Tuple
 import random
+from numpy import indices
 import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
@@ -49,9 +50,13 @@ class SRDataModule(LightningDataModule):
     def __init__(
         self,
         root: str = "./data/",
-        name: str = "DIV2K",
+        trainsets: list[Tuple[str,str]] = [("DIV2K",'train')],
+        trainsets_repeat: int = 20,
+        testsets: list[Tuple[str,str]] = [("DIV2K",'train'), ('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')],
+        split: str = 'train',
         batch_size: int = 64,
         bin=True,
+        reset_bin=False,
         scales: list[int] = [2,3,4],
         patch_size: int = 192,
         num_workers: int = 0,
@@ -63,15 +68,8 @@ class SRDataModule(LightningDataModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        # data transformations
-        self.transforms = transforms.Compose([transforms.ToTensor(),
-                                            transforms.RandomHorizontalFlip(0.5),
-                                            transforms.RandomVerticalFlip(0.5),
-                                            transforms.RandomApply(Rotation90(), 0.5)]
-        )
-
         self.data_train: Optional[Dataset] = None
-        #self.data_val: Optional[Dataset] = None
+        self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
     def prepare_data(self):
@@ -79,12 +77,7 @@ class SRDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        SRData(root=self.hparams.root,
-                name=self.hparams.name,
-                split='train',
-                bin=self.hparams.bin,
-                scales=self.hparams.scales,
-                patch_size=self.hparams.patch_size)
+        pass
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -94,20 +87,56 @@ class SRDataModule(LightningDataModule):
         """
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_test:
-            trainset = SRData(root=self.hparams.root,
-                            name=self.hparams.name,
-                            split='train',
-                            bin=self.hparams.bin,
-                            scales=self.hparams.scales,
-                            patch_size=self.hparams.patch_size)
-            testset = SRData(root=self.hparams.root,
-                            name=self.hparams.name,
-                            split='train',
-                            bin=self.hparams.bin,
-                            scales=self.hparams.scales,
-                            patch_size=0)
-            self.data_train = ConcatDataset([Subset(trainset, indices=range(800)) for _ in range(20)])
-            self.data_test = Subset(testset, indices=range(800, 810))
+            trainset = []
+            for name, split in self.hparams.trainsets:
+                if name == 'DIV2K':
+                    trainset.append(Subset(SRData(root=self.hparams.root,
+                                name=name,
+                                split=split,
+                                bin=self.hparams.bin,
+                                reset_bin=self.hparams.reset_bin,
+                                scales=self.hparams.scales,
+                                patch_size=self.hparams.patch_size,
+                                augment=True), indices=range(800)))
+                else:
+                    trainset.append(SRData(root=self.hparams.root,
+                                name=name,
+                                split=split,
+                                bin=self.hparams.bin,
+                                reset_bin=self.hparams.reset_bin,
+                                scales=self.hparams.scales,
+                                patch_size=self.hparams.patch_size,
+                                augment=True))
+            trainset = ConcatDataset(trainset)
+            self.data_train = ConcatDataset([trainset for _ in range(self.hparams.trainsets_repeat)])
+
+            testset = []
+            for name, split in self.hparams.testsets:
+                if name == 'DIV2K':
+                    testset.append(Subset(SRData(root=self.hparams.root,
+                                name=name,
+                                split=split,
+                                bin=False,
+                                scales=self.hparams.scales,
+                                patch_size=0,
+                                augment=False), indices=range(800, 900)))
+                else:
+                    testset.append(SRData(root=self.hparams.root,
+                                name=name,
+                                split=split,
+                                bin=False,
+                                scales=self.hparams.scales,
+                                patch_size=0,
+                                augment=False))
+            self.data_test = testset
+
+            self.data_val = Subset(SRData(root=self.hparams.root,
+                                name='DIV2K',
+                                split='train',
+                                bin=False,
+                                scales=self.hparams.scales,
+                                patch_size=0,
+                                augment=False), indices=range(800, 810))
 
     def train_dataloader(self):
         return DataLoader(
@@ -120,7 +149,7 @@ class SRDataModule(LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(
-            dataset=self.data_test,
+            dataset=self.data_val,
             batch_size=1,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
@@ -128,13 +157,13 @@ class SRDataModule(LightningDataModule):
         )
 
     def test_dataloader(self):
-        return DataLoader(
-            dataset=self.data_test,
+        return [DataLoader(
+            dataset=data,
             batch_size=1,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
-        )
+        ) for data in self.data_test]
 
     def teardown(self, stage: Optional[str] = None):
         """Clean up after fit or test."""

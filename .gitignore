@@ -143,6 +143,7 @@ dmypy.json
 configs/local/default.yaml
 data/
 logs/
+lightning_logs/
 wandb/
 .env
 .autoenv

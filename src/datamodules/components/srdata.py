@@ -3,7 +3,7 @@ import pickle
 import random
 import glob
 from torch.utils.data import Dataset
-from torchvision.io import read_image
+from torchvision.io import read_image, ImageReadMode
 from pathlib import Path
 
 DATASET_DIR_STRUCTURE = {
@@ -16,8 +16,25 @@ DATASET_DIR_STRUCTURE = {
             'hr_dir': 'DIV2K_test_HR',
             'lr_dir': 'DIV2K_test_LR_bicubic'
         }
+    },
+    'benchmark': {
+        'B100': {
+            'hr_dir': 'B100/HR',
+            'lr_dir': 'B100/LR_bicubic'
+        },
+        'Set5': {
+            'hr_dir': 'Set5/HR',
+            'lr_dir': 'Set5/LR_bicubic'
+        },
+        'Set14': {
+            'hr_dir': 'Set14/HR',
+            'lr_dir': 'Set14/LR_bicubic'
+        },
+        'Urban100': {
+            'hr_dir': 'Urban100/HR',
+            'lr_dir': 'Urban100/LR_bicubic'
+        }
     }
-
 }
 
 class SRData(Dataset):
@@ -93,8 +110,8 @@ class SRData(Dataset):
         else:
             f_hr = self.names_hr[idx]
             f_lr = self.names_lr[scale][idx]
-            hr = read_image(f_hr)
-            lr = read_image(f_lr)
+            hr = read_image(f_hr, ImageReadMode.RGB)/255.
+            lr = read_image(f_lr, ImageReadMode.RGB)/255.
         filename, _ = os.path.splitext(os.path.basename(f_hr))
         return lr, hr, filename
 
@@ -116,7 +133,7 @@ class SRData(Dataset):
         if not Path(f).exists() or self.reset_bin:
             print('Saving binary: {}'.format(f))
             with open(f, 'wb') as _f:
-                pickle.dump(read_image(img), _f)
+                pickle.dump(read_image(img, ImageReadMode.RGB)/255., _f)
     
 
     def get_patch(self, lr, hr, scale, patch_size):
