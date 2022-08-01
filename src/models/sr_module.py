@@ -60,8 +60,8 @@ class SRLitModule(LightningModule):
         self.net = make_net('liif')
 
         #data norm
-        self.sub = torch.FloatTensor([0.5], device=self.device).view(1, -1, 1, 1)
-        self.div = torch.FloatTensor([0.5], device=self.device).view(1, -1, 1, 1)
+        self.register_buffer("sub", torch.FloatTensor([0.5]).view(1, -1, 1, 1))
+        self.register_buffer("div", torch.FloatTensor([0.5]).view(1, -1, 1, 1))
         # loss function
         self.criterion = torch.nn.L1Loss()
 
