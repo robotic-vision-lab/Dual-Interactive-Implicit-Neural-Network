@@ -68,7 +68,7 @@ trainer:
   flush_logs_every_n_steps: null
   log_every_n_steps: 50
   accelerator: gpu
-  strategy: ddp
+  strategy: ddp_find_unused_parameters_false
   sync_batchnorm: true
   precision: 32
   enable_model_summary: true
@@ -127,5 +127,5 @@ data:
     - 3
     - 4
     patch_size: 192
-    num_workers: 4
+    num_workers: 16
     pin_memory: false

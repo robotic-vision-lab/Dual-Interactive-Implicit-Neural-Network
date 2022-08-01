@@ -113,7 +113,7 @@ class SRLitModule(LightningModule):
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         
         for scale in batch:
-            psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, data_range=1)
+            psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
@@ -128,9 +128,9 @@ class SRLitModule(LightningModule):
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
             if dataloader_idx == 0:
-                psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, data_range=1)
+                psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
             else:
-                psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, data_range=1)
+                psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss}
