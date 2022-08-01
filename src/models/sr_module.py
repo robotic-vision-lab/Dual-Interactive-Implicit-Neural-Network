@@ -68,8 +68,8 @@ class SRLitModule(LightningModule):
         # for logging best so far validation accuracy
         #self.val_psnr_best = MaxMetric()
 
-    def forward(self, x: torch.Tensor, scale):
-        return self.net(x, scale)
+    def forward(self, x: torch.Tensor, size):
+        return self.net(x, size)
 
     def on_train_start(self):
         # by default lightning executes validation step sanity checks before training starts,
