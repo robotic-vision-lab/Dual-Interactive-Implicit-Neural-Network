@@ -2,9 +2,13 @@ from typing import Any, List
 
 import torch
 from pytorch_lightning import LightningModule
+from src.models.components.liif import LIIF
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
 
-
+def make_net(arch=None):
+    if arch == 'liif':
+        return LIIF()
+    
 
 class SRLitModule(LightningModule):
     """Example of LightningModule for MNIST classification.
@@ -23,7 +27,7 @@ class SRLitModule(LightningModule):
 
     def __init__(
         self,
-        net: torch.nn.Module,
+        arch: str,
         lr: float
     ):
         super().__init__()
@@ -32,7 +36,7 @@ class SRLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False, ignore=["net"])
 
-        self.net = net
+        self.net = make_net('liif')
 
         # loss function
         self.criterion = torch.nn.L1Loss()

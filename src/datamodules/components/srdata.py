@@ -29,13 +29,13 @@ class SRData(Dataset):
                         reset_bin=False,
                         scales=[2],
                         patch_size=96,
-                        transforms=None):
+                        augment=True):
         self.file_ext = file_ext
         self.scales = scales
         self.patch_size = patch_size
         self.bin = bin
         self.reset_bin = reset_bin
-        self.transforms = transforms
+        self.augment = augment
         self._set_paths(root, name, split)
         self.names_lr, self.names_hr = self._scan(self.lr_dir, self.hr_dir, file_ext)
 
@@ -65,9 +65,20 @@ class SRData(Dataset):
         for scale in self.scales:
             lr, hr, filename = self._load_file(idx, scale)
             lr_patch, hr_patch = self.get_patch(lr, hr, scale, self.patch_size)
-            if self.transforms is not None:
-                lr_patch = self.transforms(lr_patch)
-                hr_patch = self.transforms(hr_patch)
+            if self.augment:
+                hflip = random.random() < 0.5
+                vflip = random.random() < 0.5
+                dflip = random.random() < 0.5
+                def augment(x):
+                    if hflip:
+                        x = x.flip(-2)
+                    if vflip:
+                        x = x.flip(-1)
+                    if dflip:
+                        x = x.transpose(-2, -1)
+                    return x
+                lr_patch = augment(lr_patch)
+                hr_patch = augment(hr_patch)
             sample[scale] = (lr_patch.float(), hr_patch.float(), filename)
         return sample
 
