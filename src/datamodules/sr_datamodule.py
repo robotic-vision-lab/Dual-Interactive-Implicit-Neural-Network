@@ -53,13 +53,12 @@ class SRDataModule(LightningDataModule):
         trainsets: list[Tuple[str,str]] = [("DIV2K",'train')],
         trainsets_repeat: int = 20,
         testsets: list[Tuple[str,str]] = [("DIV2K",'train'), ('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')],
-        split: str = 'train',
         batch_size: int = 64,
         bin=True,
         reset_bin=False,
         scales: list[int] = [2,3,4],
         patch_size: int = 192,
-        num_workers: int = 0,
+        num_workers: int = 4*torch.cuda.device_count(),
         pin_memory: bool = False,
     ):
         super().__init__()
