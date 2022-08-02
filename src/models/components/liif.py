@@ -17,7 +17,7 @@ def make_grid(size, offset=[0, 0], device='cuda'):
         w_offset = offset[1]/W + offset[1]*1e-6
         h_idx = h_offset - 1 + 1/H + 2*(1/H)*torch.arange(H, device=device) 
         w_idx = w_offset - 1 + 1/W + 2*(1/W)*torch.arange(W, device=device)
-        return torch.stack(torch.meshgrid(h_idx, w_idx, indexing='ij'), dim=-1).clamp_(-1 + 1e-6, 1 - 1e-6) 
+        return torch.stack(torch.meshgrid(h_idx, w_idx, indexing='ij'), dim=-1).clamp_(-1 + 1e-6, 1 - 1e-6).contiguous().detach() 
     
 class LIIF(nn.Module):
     def __init__(self,
@@ -52,8 +52,8 @@ class LIIF(nn.Module):
         #feat(B,C,H,W) and imnet is implemented as Linear layer
         return self.decoder(feat.permute(0,2,3,1)).permute(0,3,1,2)
 
-    def forward(self, x, size):
-        feat = self.encoder(x)
+    def decode(self, feat, size):
+        #feat = self.encoder(x)
 
         B, C, H_in, W_in = feat.size()
 
@@ -84,18 +84,18 @@ class LIIF(nn.Module):
                 rel_coords = out_global_grid - F.grid_sample(feat_global_grid, grid_offset.flip(-1), mode='nearest', align_corners=False) #(B,2,H_out,W_out)
                 rel_coords[:, 0, :, :] *= H_in
                 rel_coords[:, 1, :, :] *= W_in
-                inp = torch.cat([feat_o, rel_coords.contiguous().detach()], dim=1)
+                inp = torch.cat([feat_o, rel_coords], dim=1)
 
                 if self.cell_decode:
                     cell_h = feat.new_tensor(2*H_in/size[0])
                     cell_w = feat.new_tensor(2*W_in/size[1])
                     cell = torch.stack([cell_h, cell_w]).view(1,2,1,1).expand(B, -1, *size) #(B,2,H_out,W_out)
-                    inp = torch.cat([inp, cell.contiguous().detach()], dim=1)
+                    inp = torch.cat([inp, cell], dim=1)
                 
                 preds[(h_offset, w_offset)] = self.step(inp)
                 
                 area = torch.abs(rel_coords[:,[0],:,:] * rel_coords[:,[1],:,:])
-                areas[(h_offset, w_offset)] = area.contiguous().detach() + 1e-6
+                areas[(h_offset, w_offset)] = area + 1e-6
                 
         total_area = torch.cat(list(areas.values()), dim=1).sum(dim=1, keepdim=True) #(B,1,H_out,W_out)
 
@@ -106,6 +106,10 @@ class LIIF(nn.Module):
 
         return ret
 
+    def forward(self, x, size):
+        x = self.encoder(x)
+        x = self.decode(x, size)
+        return x
 
 
 if __name__ == '__main__':
