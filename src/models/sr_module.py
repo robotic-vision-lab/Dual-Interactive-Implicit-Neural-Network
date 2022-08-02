@@ -123,8 +123,9 @@ class SRLitModule(LightningModule):
 
     @torch.no_grad()
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
+        print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         loss, pred_hrs = self.step(batch)
-
+        print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         for scale in batch:
@@ -134,7 +135,7 @@ class SRLitModule(LightningModule):
                 psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        print(torch.cuda.memory_allocated())
+        print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         return {}
 
     def test_epoch_end(self, outputs: List[Any]):
