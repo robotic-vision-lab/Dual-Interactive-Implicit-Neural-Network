@@ -13,4 +13,5 @@ if __name__=='__main__':
     ckpt_path = cli.trainer.checkpoint_callback.last_model_path
     if ckpt_path == "":
         ckpt_path = None
+    cli.trainer.devices=1
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path=ckpt_path)
