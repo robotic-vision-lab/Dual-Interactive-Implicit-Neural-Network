@@ -116,13 +116,12 @@ class SRLitModule(LightningModule):
             psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        return {"loss": loss}
+        return {}
 
     def validation_epoch_end(self, outputs: List[Any]):
         pass
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
-        print(batch[2][0].shape)
         loss, pred_hrs = self.step(batch)
 
         # log test metrics
@@ -134,7 +133,7 @@ class SRLitModule(LightningModule):
                 psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        return {"loss": loss}
+        return {}
 
     def test_epoch_end(self, outputs: List[Any]):
         pass
