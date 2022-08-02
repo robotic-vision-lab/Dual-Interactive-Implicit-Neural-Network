@@ -50,7 +50,13 @@ class LIIF(nn.Module):
 
     def step(self, x, split):
         _, _, _, W  = x.shape
-        return self.decoder(x.permute(0,2,3,1)).permute(0,3,1,2)
+        if split > 1:
+            out = []
+            for i in range(0, W, W//split):
+                out.append(self.decoder(x[:,:,:,i:i+W//split].permute(0,2,3,1)).permute(0,3,1,2))
+            return torch.cat(out, dim=-1)
+        else:
+            return self.decoder(x.permute(0,2,3,1)).permute(0,3,1,2)
 
     def decode(self, feat, size, split):
         #feat = self.encoder(x)
