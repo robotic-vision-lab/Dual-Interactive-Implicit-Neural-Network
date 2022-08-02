@@ -121,7 +121,6 @@ class SRLitModule(LightningModule):
     def validation_epoch_end(self, outputs: List[Any]):
         pass
 
-    @torch.no_grad()
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
         print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         loss, pred_hrs = self.step(batch)
