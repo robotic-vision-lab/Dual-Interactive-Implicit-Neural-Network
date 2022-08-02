@@ -141,7 +141,7 @@ class SRDataModule(LightningDataModule):
                                 bin=True,
                                 scales=self.hparams.scales,
                                 patch_size=0,
-                                augment=False), indices=range(800, 810))
+                                augment=False), indices=range(800, 900))
 
     def train_dataloader(self):
         return DataLoader(
