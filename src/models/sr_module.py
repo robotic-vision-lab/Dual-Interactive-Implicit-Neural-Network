@@ -50,7 +50,7 @@ class SRLitModule(LightningModule):
         lr: float = 1e-4,
         lr_gamma: float = 0.5,
         lr_step: int = 10,
-        split: int = 0
+        eval_bsize: int = 30000
     ):
         super().__init__()
 
@@ -69,8 +69,8 @@ class SRLitModule(LightningModule):
         # for logging best so far validation accuracy
         #self.val_psnr_best = MaxMetric()
 
-    def forward(self, x: torch.Tensor, size, split=0):
-        return self.net(x, size, split)
+    def forward(self, x: torch.Tensor, size, eval_bsize=None):
+        return self.net(x, size, eval_bsize)
 
     def on_train_start(self):
         # by default lightning executes validation step sanity checks before training starts,
@@ -78,7 +78,7 @@ class SRLitModule(LightningModule):
         #self.val_psnr_best.reset()
         pass
 
-    def step(self, batch: Any, split=0):
+    def step(self, batch: Any, eval_bsize=None):
         loss = 0
         pred_hrs = {}
         #hrs = {}
@@ -86,7 +86,7 @@ class SRLitModule(LightningModule):
             lr, hr, _ = batch[scale]
             lr = (lr - self.sub) / self.div
             hr = (hr - self.sub) / self.div
-            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale], split)
+            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale], eval_bsize)
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = (pred_hr * self.div + self.sub).clamp_(0, 1)
             #hrs[scale] = hr
@@ -95,8 +95,9 @@ class SRLitModule(LightningModule):
     def training_step(self, batch: Any, batch_idx: int):
         loss, _= self.step(batch)
 
+        B = len(batch) * batch[2][0].shape[0]
         # log train metrics
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True, batch_size=B)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
@@ -108,15 +109,16 @@ class SRLitModule(LightningModule):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, pred_hrs = self.step(batch, self.hparams.split)
+        loss, pred_hrs = self.step(batch, self.hparams.eval_bsize)
 
+        B = len(batch) * batch[2][0].shape[0]
         # log val metrics
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True, batch_size=B)
         
         for scale in batch:
             psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
-            self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+            self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=B/len(batch))
         return {}
 
     def validation_epoch_end(self, outputs: List[Any]):
@@ -125,15 +127,16 @@ class SRLitModule(LightningModule):
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
         loss, pred_hrs = self.step(batch, self.hparams.split)
 
+        B = len(batch) * batch[2][0].shape[0]
         # log test metrics
-        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True, batch_size=B)
         for scale in batch:
             if dataloader_idx == 0:
                 psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
             else:
                 psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
-            self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+            self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=B/len(batch))
 
         return {}
 
