@@ -125,7 +125,7 @@ class SRLitModule(LightningModule):
         pass
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
-        loss, pred_hrs = self.step(batch, self.hparams.split)
+        loss, pred_hrs = self.step(batch, self.hparams.eval_bsize)
 
         B = len(batch) * batch[2][0].shape[0]
         # log test metrics
