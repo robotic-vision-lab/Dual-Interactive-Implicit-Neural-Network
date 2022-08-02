@@ -121,6 +121,7 @@ class SRLitModule(LightningModule):
     def validation_epoch_end(self, outputs: List[Any]):
         pass
 
+    @torch.no_grad()
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
         loss, pred_hrs = self.step(batch)
 
