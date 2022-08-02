@@ -10,7 +10,6 @@ if __name__=='__main__':
 
 
     #test
-    torch.cuda.empty_cache()
     ckpt_path = cli.trainer.checkpoint_callback.last_model_path
     if ckpt_path == "":
         ckpt_path = None

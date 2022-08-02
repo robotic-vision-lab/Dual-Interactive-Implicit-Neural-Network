@@ -121,7 +121,7 @@ class SRDataModule(LightningDataModule):
                     testset.append(Subset(SRData(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                bin=False,
+                                bin=True,
                                 scales=self.hparams.scales,
                                 patch_size=0,
                                 augment=False), indices=range(800, 900)))
@@ -138,7 +138,7 @@ class SRDataModule(LightningDataModule):
             self.data_val = Subset(SRData(root=self.hparams.root,
                                 name='DIV2K',
                                 split='train',
-                                bin=False,
+                                bin=True,
                                 scales=self.hparams.scales,
                                 patch_size=0,
                                 augment=False), indices=range(800, 810))
