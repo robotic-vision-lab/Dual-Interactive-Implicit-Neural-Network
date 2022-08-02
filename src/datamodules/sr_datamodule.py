@@ -70,6 +70,7 @@ class SRDataModule(LightningDataModule):
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
+        self.prepare_data()
 
     def prepare_data(self):
         """Download data if needed.
