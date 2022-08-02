@@ -49,7 +49,8 @@ class SRLitModule(LightningModule):
         arch: str,
         lr: float = 1e-4,
         lr_gamma: float = 0.5,
-        lr_step: int = 10
+        lr_step: int = 10,
+        split: int = 0
     ):
         super().__init__()
 
@@ -69,7 +70,7 @@ class SRLitModule(LightningModule):
         #self.val_psnr_best = MaxMetric()
 
     def forward(self, x: torch.Tensor, size):
-        return self.net(x, size)
+        return self.net(x, size, self.hparams.split)
 
     def on_train_start(self):
         # by default lightning executes validation step sanity checks before training starts,
