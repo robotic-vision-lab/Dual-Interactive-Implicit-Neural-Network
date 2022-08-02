@@ -69,8 +69,8 @@ class SRLitModule(LightningModule):
         # for logging best so far validation accuracy
         #self.val_psnr_best = MaxMetric()
 
-    def forward(self, x: torch.Tensor, size):
-        return self.net(x, size, self.hparams.split)
+    def forward(self, x: torch.Tensor, size, split=0):
+        return self.net(x, size, split)
 
     def on_train_start(self):
         # by default lightning executes validation step sanity checks before training starts,
@@ -78,7 +78,7 @@ class SRLitModule(LightningModule):
         #self.val_psnr_best.reset()
         pass
 
-    def step(self, batch: Any):
+    def step(self, batch: Any, split=0):
         loss = 0
         pred_hrs = {}
         #hrs = {}
@@ -86,7 +86,7 @@ class SRLitModule(LightningModule):
             lr, hr, _ = batch[scale]
             lr = (lr - self.sub) / self.div
             hr = (hr - self.sub) / self.div
-            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale])
+            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale], split)
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = (pred_hr * self.div + self.sub).clamp_(0, 1)
             #hrs[scale] = hr
@@ -108,7 +108,7 @@ class SRLitModule(LightningModule):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, pred_hrs = self.step(batch)
+        loss, pred_hrs = self.step(batch, self.hparams.split)
 
         # log val metrics
         self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
@@ -123,7 +123,7 @@ class SRLitModule(LightningModule):
         pass
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
-        loss, pred_hrs = self.step(batch)
+        loss, pred_hrs = self.step(batch, self.hparams.split)
 
         # log test metrics
         self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
