@@ -133,7 +133,7 @@ class SRLitModule(LightningModule):
                 psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        torch.cuda.memory_allocated()
+        print(torch.cuda.memory_allocated())
         return {}
 
     def test_epoch_end(self, outputs: List[Any]):
