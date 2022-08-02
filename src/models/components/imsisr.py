@@ -55,22 +55,21 @@ class ImplicitDecoder(nn.Module):
 
         self.last_conv = nn.Conv2d(hidden_channels, 3, kernel_size=3, padding=1)
 
-    def _make_pos_encoding(self, x, scale_factor):
+    def _make_pos_encoding(self, x, size):
         B, C, H, W = x.shape
-        #H_up, W_up = size
-        H_up = int(H * scale_factor)
-        W_up = int(W * scale_factor)
+        H_up, W_up = size
+       
 
-        h_idx = torch.arange(H, device=x.device)/H * 2 - 1 + 1/H
-        w_idx = torch.arange(W, device=x.device)/W * 2 - 1 + 1/W
+        h_idx = -1 + 1/H + 2/H * torch.arange(H, device=x.device)
+        w_idx = -1 + 1/W + 2/W * torch.arange(W, device=x.device)
         h_grid, w_grid = torch.meshgrid(h_idx, w_idx)
 
-        h_idx_up = torch.arange(H_up, device=x.device)/H_up * 2 - 1 + 1/H_up
-        w_idx_up = torch.arange(W_up, device=x.device)/W_up * 2 - 1 + 1/W_up
+        h_idx_up = -1 + 1/H_up + 2/H_up * torch.arange(H_up, device=x.device)
+        w_idx_up = -1 + 1/W_up + 2/W_up * torch.arange(W_up, device=x.device)
         h_up_grid, w_up_grid = torch.meshgrid(h_idx_up, w_idx_up)
 
-        h_relative_grid = (h_up_grid - F.interpolate(h_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))*H
-        w_relative_grid = (w_up_grid - F.interpolate(w_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))*W
+        h_relative_grid = H * (h_up_grid - F.interpolate(h_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))
+        w_relative_grid = W * (w_up_grid - F.interpolate(w_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))
         
         grid = torch.cat((h_relative_grid, w_relative_grid), dim=1).expand(B,-1,-1,-1) #(B, 2, H_up, W_up)
         

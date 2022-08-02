@@ -3,6 +3,8 @@ from functools import partial
 import torch
 from pytorch_lightning import LightningModule
 from src.models.components.liif import LIIF
+from src.models.components.metasr import MetaSR
+from src.models.components.imsisr import IMSISR
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
 import os
 def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
@@ -27,6 +29,10 @@ def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
 def make_net(arch=None):
     if arch == 'liif':
         return LIIF()
+    elif arch == 'metasr':
+        return MetaSR()
+    elif arch == 'imsisr':
+        return IMSISR()
     
 
 class SRLitModule(LightningModule):
@@ -58,7 +64,7 @@ class SRLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False, ignore=["net"])
 
-        self.net = make_net('liif')
+        self.net = make_net(self.hparams.arch)
 
         #data norm
         self.register_buffer("sub", torch.FloatTensor([0.5]).view(1, -1, 1, 1))

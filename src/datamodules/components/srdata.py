@@ -146,8 +146,9 @@ class SRData(Dataset):
             return lr, hr
         else:
             lr_h, lr_w = lr.shape[-2:]
-            hr_patch_size = patch_size
-            lr_patch_size = patch_size // scale
+            hr_patch_size = patch_size * scale
+            lr_patch_size = patch_size
+
             #get random top-left location in lr
             lr_patch_top = random.randrange(0, lr_h - lr_patch_size + 1)
             lr_patch_left = random.randrange(0, lr_w - lr_patch_size + 1)
