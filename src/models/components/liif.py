@@ -48,11 +48,17 @@ class LIIF(nn.Module):
         layers.append(nn.Linear(lastv, out_dim))
         self.decoder = nn.Sequential(*layers)
 
-    def step(self, feat):
-        #feat(B,C,H,W) and imnet is implemented as Linear layer
-        return self.decoder(feat.permute(0,2,3,1)).permute(0,3,1,2)
+    def step(self, x, split):
+        _, _, _, W  = x.shape
+        if split > 0:
+            out = []
+            for i in range(0, W, W//split):
+                out.append(self.decoder(x[:,:,:,i:i+W//split].permute(0,2,3,1)).permute(0,3,1,2))
+            return torch.cat(out, dim=-1)
+        else:
+            return self.decoder(x.permute(0,2,3,1)).permute(0,3,1,2)
 
-    def decode(self, feat, size):
+    def decode(self, feat, size, split):
         #feat = self.encoder(x)
 
         B, C, H_in, W_in = feat.size()
@@ -92,7 +98,7 @@ class LIIF(nn.Module):
                     cell = torch.stack([cell_h, cell_w]).view(1,2,1,1).expand(B, -1, *size) #(B,2,H_out,W_out)
                     inp = torch.cat([inp, cell], dim=1)
                 
-                preds[(h_offset, w_offset)] = self.step(inp)
+                preds[(h_offset, w_offset)] = self.step(inp, split)
                 
                 area = torch.abs(rel_coords[:,[0],:,:] * rel_coords[:,[1],:,:])
                 areas[(h_offset, w_offset)] = area + 1e-6
@@ -106,9 +112,9 @@ class LIIF(nn.Module):
 
         return ret
 
-    def forward(self, x, size):
+    def forward(self, x, size, split=0):
         x = self.encoder(x)
-        x = self.decode(x, size)
+        x = self.decode(x, size, split)
         return x
 
 
