@@ -24,7 +24,7 @@ trainer:
   - class_path: pytorch_lightning.callbacks.ModelCheckpoint
     init_args:
       dirpath: null
-      filename: epoch_{epoch:03d}
+      filename: null
       monitor: val/loss
       verbose: false
       save_last: true
@@ -55,7 +55,7 @@ trainer:
   check_val_every_n_epoch: 1
   fast_dev_run: false
   accumulate_grad_batches: null
-  max_epochs: 100
+  max_epochs: 50
   min_epochs: 10
   max_steps: -1
   min_steps: null
@@ -92,13 +92,6 @@ trainer:
   multiple_trainloader_mode: max_size_cycle
   stochastic_weight_avg: false
   terminate_on_nan: null
-model:
-  class_path: src.models.sr_module.SRLitModule
-  init_args:
-    arch: liif
-    lr: 0.0001
-    lr_gamma: 0.5
-    lr_step: 10
 data:
   class_path: src.datamodules.sr_datamodule.SRDataModule
   init_args:
@@ -127,4 +120,4 @@ data:
     - 4
     patch_size: 192
     num_workers: 16
-    pin_memory: false
+    pin_memory: True
