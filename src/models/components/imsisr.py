@@ -66,11 +66,11 @@ class ImplicitDecoder(nn.Module):
 
     def step(self, x, syn_inp):
         k = self.K[0](x)
-        q = self.Q[0](syn_inp)
+        #q = self.Q[0](syn_inp)
         #out = q * k
         for i in range(1, len(self.K)):
             k = self.K[i](k)
-            q = k*self.Q[i](q)
+            #q = k*self.Q[i](q)
             #out = k * q
         out = self.last_layer(k)
         return out
