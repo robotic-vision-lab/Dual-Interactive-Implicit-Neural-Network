@@ -42,7 +42,7 @@ class ImplicitDecoder(nn.Module):
                                         nn.ReLU()))
             self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
                                         SineAct()))
-            last_dim_K = hidden_dim + in_channels * 9
+            last_dim_K = hidden_dim
             last_dim_Q = hidden_dim
         self.last_layer = nn.Linear(hidden_dims[-1], 3)
 
@@ -69,8 +69,8 @@ class ImplicitDecoder(nn.Module):
         q = self.Q[0](syn_inp)
         out = q * k
         for i in range(1, len(self.K)):
-            k = self.K[i](torch.cat([out, x], dim=-1))
-            q = self.Q[i](q)
+            k = self.K[i](k)
+            q = self.Q[i](out)
             out = k * q
         out = self.last_layer(out)
         return out
