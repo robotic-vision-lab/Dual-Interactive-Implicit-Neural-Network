@@ -17,9 +17,9 @@ class IMSISR(nn.Module):
         self.encoder = make_rdn()
         self.decoder = ImplicitDecoder()
 
-    def forward(self, x, size):
+    def forward(self, x, size, bsize=None):
         x = self.encoder(x)
-        x = self.decoder(x, size)
+        x = self.decoder(x, size, bsize)
         return x 
 
 class SineAct(nn.Module):
@@ -64,22 +64,46 @@ class ImplicitDecoder(nn.Module):
 
         return rel_grid.contiguous().detach()
 
+    def step(self, x, syn_inp):
+        k = self.K[0](x)
+        q = self.Q[0](syn_inp)
+        out = q * k
+        for i in range(1, len(self.K)):
+            k = self.K[i](torch.cat([out, x], dim=-1))
+            q = self.Q[i](torch.cat([out, q], dim=-1))
+            out = k * q
+        out = self.last_layer(out)
+        return out
+
+    def batched_step(self, x, syn_inp, bsize):
+        with torch.no_grad():
+            n = syn_inp.shape[1]
+            ql = 0
+            preds = []
+            while ql < n:
+                qr = min(ql + bsize, n)
+                pred = self.step(x[:, ql: qr, :], syn_inp[:, ql: qr, :])
+                preds.append(pred)
+                ql = qr
+            pred = torch.cat(preds, dim=1)
+        return pred
+
+    def reshape_pred(self, pred, size):
+        shape = [pred.shape[0], *size, 3]
+        pred = pred.view(*shape) \
+                .permute(0, 3, 1, 2).contiguous()
+        return pred
+
     def forward(self, x, size, bsize=None):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size) #2
         ratio = x.new_tensor([H_in/size[0], W_in/size[1]]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        syn_inp = torch.cat([rel_coord, ratio], dim=1).permute(0,2,3,1).contiguous() #4
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').permute(0,2,3,1).contiguous()
+        syn_inp = torch.cat([rel_coord, ratio], dim=1).permute(0,2,3,1).view(B, size[0]*size[1], -1) #4
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').permute(0,2,3,1).view(B, size[0]*size[1], -1)
 
         if bsize is None:
-            k = self.K[0](x)
-            q = self.Q[0](syn_inp)
-            out = q * k
-            for i in range(1, len(self.K)):
-                k = self.K[i](torch.cat([out, x], dim=-1))
-                q = self.Q[i](torch.cat([out, q], dim=-1))
-                out = k * q
-            out = self.last_layer(out)
-            return out.permute(0, 3, 1, 2).contiguous()
+            pred = self.step(x, syn_inp)
         else:
-            raise NotImplemented
+            pred = self.batched_step(x, syn_inp, bsize)
+        return self.reshape_pred(pred)
+            
