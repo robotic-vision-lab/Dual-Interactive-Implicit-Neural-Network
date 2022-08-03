@@ -96,10 +96,10 @@ class ImplicitDecoder(nn.Module):
 
     def forward(self, x, size, bsize=None):
         B, C, H_in, W_in = x.shape
-        rel_coord = self._make_pos_encoding(x, size) #2
+        rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([H_in/size[0], W_in/size[1]]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        syn_inp = torch.cat([rel_coord, ratio], dim=1).permute(0,2,3,1).view(B, size[0]*size[1], -1) #4
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').permute(0,2,3,1).view(B, size[0]*size[1], -1)
+        syn_inp = torch.cat([rel_coord, ratio], dim=1).view(B, size[0]*size[1], -1) #4
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
 
         if bsize is None:
             pred = self.step(x, syn_inp)
