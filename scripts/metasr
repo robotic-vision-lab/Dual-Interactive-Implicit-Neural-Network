@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=000
-#SBATCH --output=000
+#SBATCH --job-name=metasr
+#SBATCH --output=metasr
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mail-type=all
@@ -10,6 +10,6 @@
 #SBATCH -p gpu
 
 eval "$(conda shell.bash hook)"
-cd /lustre/scratch5/hquan/projects/ensembleAT
+cd /lustre/scratch5/hquan/projects/sisr
 conda activate clat
 python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=metasr --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=metasr
