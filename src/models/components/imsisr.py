@@ -72,8 +72,8 @@ class ImplicitDecoder(nn.Module):
             k = self.K[i](k)
             q = k*self.Q[i](q)
             #out = k * q
-        #out = self.last_layer(out)
-        return q
+        out = self.last_layer(q)
+        return out
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
