@@ -36,7 +36,7 @@ class ImplicitDecoder(nn.Module):
         self.Q = nn.ModuleList()
 
         last_dim_K = in_channels * 9
-        last_dim_Q = 4
+        last_dim_Q = 3
         for hidden_dim in hidden_dims:
             self.K.append(nn.Sequential(nn.Linear(last_dim_K, hidden_dim),
                                         nn.ReLU()))
@@ -69,8 +69,8 @@ class ImplicitDecoder(nn.Module):
         q = self.Q[0](syn_inp)
         out = q * k
         for i in range(1, len(self.K)):
-            k = self.K[i](torch.cat([k, x], dim=-1))
-            q = self.Q[i](out)
+            k = self.K[i](torch.cat([out, x], dim=-1))
+            q = self.Q[i](q)
             out = k * q
         out = self.last_layer(out)
         return out
@@ -97,7 +97,7 @@ class ImplicitDecoder(nn.Module):
     def forward(self, x, size, bsize=None):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
-        ratio = x.new_tensor([H_in/size[0], W_in/size[1]]).view(1, -1, 1, 1).expand(B, -1, *size) #2
+        ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1).view(B, size[0]*size[1], -1) #4
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
         if bsize is None:
