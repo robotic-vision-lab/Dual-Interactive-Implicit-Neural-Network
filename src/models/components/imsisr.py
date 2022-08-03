@@ -69,8 +69,8 @@ class ImplicitDecoder(nn.Module):
         q = self.Q[0](syn_inp)
         out = q * k
         for i in range(1, len(self.K)):
-            k = self.K[i](torch.cat([out, x], dim=-1))
-            q = self.Q[i](torch.cat([q], dim=-1))
+            k = self.K[i](torch.cat([k, x], dim=-1))
+            q = self.Q[i](out)
             out = k * q
         out = self.last_layer(out)
         return out
