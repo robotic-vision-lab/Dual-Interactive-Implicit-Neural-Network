@@ -64,19 +64,22 @@ class ImplicitDecoder(nn.Module):
 
         return rel_grid.contiguous().detach()
 
-    def forward(self, x, size):
+    def forward(self, x, size, bsize=None):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size) #2
         ratio = x.new_tensor([H_in/size[0], W_in/size[1]]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1).permute(0,2,3,1).contiguous() #4
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').permute(0,2,3,1).contiguous()
 
-        k = self.K[0](x)
-        q = self.Q[0](syn_inp)
-        out = q * k
-        for i in range(1, len(self.K)):
-            k = self.K[i](torch.cat([out, x], dim=-1))
-            q = self.Q[i](torch.cat([out, q], dim=-1))
-            out = k * q
-        out = self.last_layer(out)
-        return out.permute(0, 3, 1, 2).contiguous()
+        if bsize is None:
+            k = self.K[0](x)
+            q = self.Q[0](syn_inp)
+            out = q * k
+            for i in range(1, len(self.K)):
+                k = self.K[i](torch.cat([out, x], dim=-1))
+                q = self.Q[i](torch.cat([out, q], dim=-1))
+                out = k * q
+            out = self.last_layer(out)
+            return out.permute(0, 3, 1, 2).contiguous()
+        else:
+            raise NotImplemented
