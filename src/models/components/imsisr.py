@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.models.components.rdn import make_rdn
-
+import pdb
 class IMSISR(nn.Module):
     def __init__(self,
                  local_ensemble=True,
@@ -15,18 +15,11 @@ class IMSISR(nn.Module):
         self.cell_decode = cell_decode
         
         self.encoder = make_rdn()
-        self.tail = ImplicitDecoder(64, 256, 4)
+        self.decoder = ImplicitDecoder()
 
-    def forward(self, x, scale):
-        x = self.sub_mean(x)
-        x = self.head(x)
-
-        res = self.body(x)
-        res += x
-
-        x = self.tail(res, scale)
-        x = self.add_mean(x)
-
+    def forward(self, x, size):
+        x = self.encoder(x)
+        x = self.decoder(x, size)
         return x 
 
 class SineAct(nn.Module):
@@ -37,52 +30,53 @@ class SineAct(nn.Module):
         return torch.sin(x)
 
 class ImplicitDecoder(nn.Module):
-    def __init__(self, in_channels=64, hidden_channels=128, depth=4):
+    def __init__(self, in_channels=64, hidden_dims=[256, 256, 256, 256]):
         super().__init__()
-        self.hidden_channels = hidden_channels
-        self.synthesis = nn.ModuleList()
-        self.modulate = nn.ModuleList()
-        self.last_block = nn.ModuleList()
-        self.modulate.append(nn.Sequential(nn.Conv2d(in_channels, hidden_channels, 1),
-                            nn.ReLU()))
-        self.synthesis.append(nn.Sequential(nn.Conv2d(2, hidden_channels, 1),
-                            SineAct()))
-        for i in range(depth-1):
-            self.synthesis.append(nn.Sequential(nn.Conv2d(hidden_channels, hidden_channels, 1),
-                                                SineAct()))
-            self.modulate.append(nn.Sequential(nn.Conv2d(hidden_channels, hidden_channels, 1),
-                                                nn.ReLU()))
+        self.K = nn.ModuleList()
+        self.Q = nn.ModuleList()
 
-        self.last_conv = nn.Conv2d(hidden_channels, 3, kernel_size=3, padding=1)
+        last_dim_K = in_channels * 9
+        last_dim_Q = 4
+        for hidden_dim in hidden_dims:
+            self.K.append(nn.Sequential(nn.Linear(last_dim_K, hidden_dim),
+                                        nn.ReLU()))
+            self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
+                                        SineAct()))
+            last_dim_K = hidden_dim + in_channels * 9
+            last_dim_Q = hidden_dim * 2
+        self.last_layer = nn.Linear(hidden_dims[-1], 3)
 
     def _make_pos_encoding(self, x, size):
         B, C, H, W = x.shape
         H_up, W_up = size
        
+        h_idx = -1 + 1/H + 2/H * torch.arange(H, device=x.device).float()
+        w_idx = -1 + 1/W + 2/W * torch.arange(W, device=x.device).float()
+        in_grid = torch.stack(torch.meshgrid(h_idx, w_idx, indexing='ij'), dim=0)
 
-        h_idx = -1 + 1/H + 2/H * torch.arange(H, device=x.device)
-        w_idx = -1 + 1/W + 2/W * torch.arange(W, device=x.device)
-        h_grid, w_grid = torch.meshgrid(h_idx, w_idx)
-
-        h_idx_up = -1 + 1/H_up + 2/H_up * torch.arange(H_up, device=x.device)
-        w_idx_up = -1 + 1/W_up + 2/W_up * torch.arange(W_up, device=x.device)
-        h_up_grid, w_up_grid = torch.meshgrid(h_idx_up, w_idx_up)
-
-        h_relative_grid = H * (h_up_grid - F.interpolate(h_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))
-        w_relative_grid = W * (w_up_grid - F.interpolate(w_grid.unsqueeze(0).unsqueeze(0), size=(H_up, W_up), mode='nearest'))
+        h_idx_up = -1 + 1/H_up + 2/H_up * torch.arange(H_up, device=x.device).float()
+        w_idx_up = -1 + 1/W_up + 2/W_up * torch.arange(W_up, device=x.device).float()
+        up_grid = torch.stack(torch.meshgrid(h_idx_up, w_idx_up, indexing='ij'), dim=0)
         
-        grid = torch.cat((h_relative_grid, w_relative_grid), dim=1).expand(B,-1,-1,-1) #(B, 2, H_up, W_up)
-        
-        return grid.contiguous().detach()
+        rel_grid = (up_grid - F.interpolate(in_grid.unsqueeze(0), size=(H_up, W_up), mode='nearest-exact')) #important! mode='nearest' gives inconsistent results
+        rel_grid[:,0,:,:] *= H
+        rel_grid[:,1,:,:] *= W
 
-    def forward(self, x, scale_factor):
-        #input x(B,F,H,W) image representations
-        p = self._make_pos_encoding(x, scale_factor) #2
-        #x = F.interpolate(x, scale_factor=scale_factor, mode='bilinear', align_corners=False) #64
-        h = F.interpolate(self.modulate[0](x), scale_factor=scale_factor, mode='nearest', align_corners=False) #128
-        p = self.synthesis[0](p)
-        for i in range(1, len(self.synthesis)):
-            h = self.modulate[i](h) #128
-            p = h*self.synthesis[i](p) #128
-        p = self.last_conv(p)
-        return p
+        return rel_grid.contiguous().detach()
+
+    def forward(self, x, size):
+        B, C, H_in, W_in = x.shape
+        rel_coord = self._make_pos_encoding(x, size) #2
+        ratio = x.new_tensor([H_in/size[0], W_in/size[1]]).view(1, -1, 1, 1).expand(B, -1, *size) #2
+        syn_inp = torch.cat([rel_coord, ratio], dim=1).permute(0,2,3,1).contiguous() #4
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').permute(0,2,3,1).contiguous()
+
+        k = self.K[0](x)
+        q = self.Q[0](syn_inp)
+        out = q * k
+        for i in range(1, len(self.K)):
+            k = self.K[i](torch.cat([out, x], dim=-1))
+            q = self.Q[i](torch.cat([out, q], dim=-1))
+            out = k * q
+        out = self.last_layer(out)
+        return out.permute(0, 3, 1, 2).contiguous()
