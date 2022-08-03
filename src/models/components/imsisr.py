@@ -43,7 +43,7 @@ class ImplicitDecoder(nn.Module):
             self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
                                         SineAct()))
             last_dim_K = hidden_dim + in_channels * 9
-            last_dim_Q = hidden_dim * 2
+            last_dim_Q = hidden_dim
         self.last_layer = nn.Linear(hidden_dims[-1], 3)
 
     def _make_pos_encoding(self, x, size):
