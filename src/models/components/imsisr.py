@@ -67,13 +67,13 @@ class ImplicitDecoder(nn.Module):
     def step(self, x, syn_inp):
         k = self.K[0](x)
         q = self.Q[0](syn_inp)
-        out = q * k
+        #out = q * k
         for i in range(1, len(self.K)):
             k = self.K[i](k)
-            q = self.Q[i](out)
-            out = k * q
-        out = self.last_layer(out)
-        return out
+            q = k*self.Q[i](q)
+            #out = k * q
+        #out = self.last_layer(out)
+        return q
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
@@ -99,7 +99,8 @@ class ImplicitDecoder(nn.Module):
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1).view(B, size[0]*size[1], -1) #4
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
+        #x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
+        x = F.interpolate(x, size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
         if bsize is None:
             pred = self.step(x, syn_inp)
         else:
