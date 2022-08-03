@@ -35,7 +35,7 @@ class ImplicitDecoder(nn.Module):
         self.K = nn.ModuleList()
         self.Q = nn.ModuleList()
 
-        last_dim_K = in_channels * 9
+        last_dim_K = in_channels
         last_dim_Q = 3
         for hidden_dim in hidden_dims:
             self.K.append(nn.Sequential(nn.Linear(last_dim_K, hidden_dim),
