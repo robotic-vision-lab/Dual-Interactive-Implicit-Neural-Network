@@ -33,15 +33,15 @@ class ImplicitDecoder(nn.Module):
     def __init__(self, in_channels=64, hidden_dims=[256, 256, 256, 256]):
         super().__init__()
         self.K = nn.ModuleList()
-        self.Q = nn.ModuleList()
+        #self.Q = nn.ModuleList()
 
         last_dim_K = in_channels
         last_dim_Q = 3
         for hidden_dim in hidden_dims:
             self.K.append(nn.Sequential(nn.Linear(last_dim_K, hidden_dim),
                                         nn.ReLU()))
-            self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
-                                        SineAct()))
+            #self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
+            #                            SineAct()))
             last_dim_K = hidden_dim
             last_dim_Q = hidden_dim
         self.last_layer = nn.Linear(hidden_dims[-1], 3)
