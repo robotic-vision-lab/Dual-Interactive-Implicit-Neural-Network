@@ -98,7 +98,7 @@ class ImplicitDecoder(nn.Module):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        syn_inp = torch.cat([rel_coord, ratio], dim=1).view(B, size[0]*size[1], -1) #4
+        syn_inp = torch.cat([rel_coord, ratio], dim=1) #4
         #x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').view(B, size[0]*size[1], -1)
         x = F.interpolate(x, size=size, mode='nearest-exact')
         if bsize is None:
