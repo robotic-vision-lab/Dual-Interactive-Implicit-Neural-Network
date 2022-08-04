@@ -40,11 +40,11 @@ class ImplicitDecoder(nn.Module):
         for hidden_dim in hidden_dims:
             self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
                                         nn.ReLU()))
-            self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim),
+            self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
                                         SineAct()))
             last_dim_K = hidden_dim
             last_dim_Q = hidden_dim
-        self.last_layer = nn.Linear(hidden_dims[-1], 3)
+        self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 3, padding=1)
 
     def _make_pos_encoding(self, x, size):
         B, C, H, W = x.shape
