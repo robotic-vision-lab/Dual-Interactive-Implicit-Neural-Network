@@ -38,13 +38,13 @@ class ImplicitDecoder(nn.Module):
         last_dim_K = in_channels * 9
         last_dim_Q = 3
         for hidden_dim in hidden_dims:
-            self.K.append(nn.Sequential(nn.Linear(last_dim_K, hidden_dim),
+            self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
                                         nn.ReLU()))
-            self.Q.append(nn.Sequential(nn.Linear(last_dim_Q, hidden_dim),
+            self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
                                         SineAct()))
             last_dim_K = hidden_dim
             last_dim_Q = hidden_dim
-        self.last_layer = nn.Linear(hidden_dims[-1], 3)
+        self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
 
     def _make_pos_encoding(self, x, size):
         B, C, H, W = x.shape
@@ -78,33 +78,27 @@ class ImplicitDecoder(nn.Module):
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
-            n = syn_inp.shape[1]
+            h, w = syn_inp.shape[-2:]
             ql = 0
             preds = []
             while ql < n:
-                qr = min(ql + bsize, n)
-                pred = self.step(x[:, ql: qr, :], syn_inp[:, ql: qr, :])
+                qr = min(ql + bsize//(h*w), w)
+                pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr])
                 preds.append(pred)
                 ql = qr
-            pred = torch.cat(preds, dim=1)
+            pred = torch.cat(preds, dim=-1)
         return pred
 
-    def reshape_pred(self, pred, size):
-        shape = [pred.shape[0], *size, 3]
-        pred = pred.view(*shape) \
-                .permute(0, 3, 1, 2).contiguous()
-        return pred
 
     def forward(self, x, size, bsize=None):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        syn_inp = torch.cat([rel_coord, ratio], dim=1).contiguous().view(B, size[0]*size[1], -1) #4
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact').contiguous().view(B, size[0]*size[1], -1)
-        #x = F.interpolate(x, size=size, mode='nearest-exact')
+        syn_inp = torch.cat([rel_coord, ratio], dim=1)
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
+
         if bsize is None:
             pred = self.step(x, syn_inp)
         else:
             pred = self.batched_step(x, syn_inp, bsize)
-        return self.reshape_pred(pred, size)
-        #return pred
+        return pred
