@@ -81,7 +81,7 @@ class ImplicitDecoder(nn.Module):
             h, w = syn_inp.shape[-2:]
             ql = 0
             preds = []
-            while ql < n:
+            while ql < w:
                 qr = min(ql + bsize//(h*w), w)
                 pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr])
                 preds.append(pred)
