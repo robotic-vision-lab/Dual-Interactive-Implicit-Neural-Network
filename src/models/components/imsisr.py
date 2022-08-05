@@ -6,16 +6,11 @@ from src.models.components.rdn import make_rdn
 import pdb
 class IMSISR(nn.Module):
     def __init__(self,
-                 local_ensemble=True,
-                 feat_unfold=True,
-                 cell_decode=True):
+                 mode, init_q):
         super().__init__()
-        self.local_ensemble = local_ensemble
-        self.feat_unfold = feat_unfold
-        self.cell_decode = cell_decode
         
         self.encoder = make_rdn()
-        self.decoder = ImplicitDecoder()
+        self.decoder = ImplicitDecoder(mode=mode, init_q=init_q)
 
     def forward(self, x, size, bsize=None):
         x = self.encoder(x)
@@ -30,20 +25,43 @@ class SineAct(nn.Module):
         return torch.sin(x)
 
 class ImplicitDecoder(nn.Module):
-    def __init__(self, in_channels=64, hidden_dims=[256, 256, 256, 256]):
+    def __init__(self, in_channels=64, hidden_dims=[256, 256, 256, 256], mode=1, init_q=False):
         super().__init__()
         self.K = nn.ModuleList()
         self.Q = nn.ModuleList()
 
+        self.mode = mode
+        self.init_q = init_q
+
         last_dim_K = in_channels * 9
-        last_dim_Q = 3
-        for hidden_dim in hidden_dims:
-            self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
-                                        nn.ReLU()))
-            self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
-                                        SineAct()))
-            last_dim_K = hidden_dim
-            last_dim_Q = hidden_dim
+        last_dim_Q = in_channels * 9
+        if self.init_q:
+            self.first_layer = nn.Sequential(nn.Conv2d(3, in_channels * 9, 1),
+                                            SineAct())
+        if self.mode == 1:
+            for hidden_dim in hidden_dims:
+                self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
+                                            nn.ReLU()))
+                self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
+                                            SineAct()))
+                last_dim_K = hidden_dim
+                last_dim_Q = hidden_dim
+        elif self.mode == 2:
+            for hidden_dim in hidden_dims:
+                self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
+                                            nn.ReLU()))
+                self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
+                                            SineAct()))
+                last_dim_K = hidden_dim + in_channels * 9
+                last_dim_Q = hidden_dim
+        elif self.mode == 3:
+            for hidden_dim in hidden_dims:
+                self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
+                                            nn.ReLU()))
+                self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
+                                            SineAct()))
+                last_dim_K = hidden_dim + in_channels * 9
+                last_dim_Q = hidden_dim
         self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
 
     def _make_pos_encoding(self, x, size):
@@ -65,16 +83,34 @@ class ImplicitDecoder(nn.Module):
         return rel_grid.contiguous().detach()
 
     def step(self, x, syn_inp):
-        k = self.K[0](x)
-        q = k*self.Q[0](syn_inp)
-        #out = q * k
-        
-        for i in range(1, len(self.K)):
-            k = self.K[i](k)
-            q = k*self.Q[i](q)
-            #out = k * q
-        q = self.last_layer(q)
-        return q
+        if self.init_q:
+            syn_inp = self.first_layer(syn_inp)
+            x = syn_inp * x
+        if self.mode == 1:
+            k = self.K[0](x)
+            q = k*self.Q[0](syn_inp)        
+            for i in range(1, len(self.K)):
+                k = self.K[i](k)
+                q = k*self.Q[i](q)
+            q = self.last_layer(q)
+            return q
+        elif self.mode == 2:
+            k = self.K[0](x)
+            q = self.Q[0](syn_inp)
+            for i in range(1, len(self.K)):
+                k = self.K[i](torch.cat([k,x], dim=1))
+                q = k*self.Q[i](q)
+            q = self.last_layer(q)
+            return q
+        elif self.mode == 3:
+            k = self.K[0](x)
+            q = self.Q[0](syn_inp)
+            for i in range(1, len(self.K)):
+                k = self.K[i](torch.cat([q,x], dim=1))
+                q = k*self.Q[i](q)
+            q = self.last_layer(q)
+            return q
+
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
@@ -82,7 +118,7 @@ class ImplicitDecoder(nn.Module):
             ql = 0
             preds = []
             while ql < w:
-                qr = min(ql + bsize//(h), w)
+                qr = min(ql + bsize//h, w)
                 pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr])
                 preds.append(pred)
                 ql = qr
