@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=000
-#SBATCH --output=000
+#SBATCH --job-name=1_0
+#SBATCH --output=1_0
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mail-type=all
@@ -12,4 +12,4 @@
 eval "$(conda shell.bash hook)"
 cd /lustre/scratch5/hquan/projects/ensembleAT
 conda activate clat
-python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=liif --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=liif
+python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=imsisr --model.mode=1 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=1_0

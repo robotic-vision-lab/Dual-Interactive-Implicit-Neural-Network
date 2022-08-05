@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=3_0
+#SBATCH --output=3_0
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mail-type=all
+#SBATCH --mail-user=hquan@lanl.gov
+#SBATCH --qos=standard
+#SBATCH --time=16:00:00
+#SBATCH -p gpu
+
+eval "$(conda shell.bash hook)"
+cd /lustre/scratch5/hquan/projects/ensembleAT
+conda activate clat
+python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
