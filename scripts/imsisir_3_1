@@ -10,6 +10,6 @@
 #SBATCH -p gpu
 
 eval "$(conda shell.bash hook)"
-cd /lustre/scratch5/hquan/projects/ensembleAT
+cd /lustre/scratch5/hquan/projects/sisr
 conda activate clat
 python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=True --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_1
