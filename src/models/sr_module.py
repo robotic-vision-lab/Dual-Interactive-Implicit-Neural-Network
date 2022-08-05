@@ -26,13 +26,13 @@ def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
     mse = valid.pow(2).mean()
     return -10 * torch.log10(mse)
 
-def make_net(arch=None):
+def make_net(arch, mode, init_q):
     if arch == 'liif':
         return LIIF()
     elif arch == 'metasr':
         return MetaSR()
     elif arch == 'imsisr':
-        return IMSISR()
+        return IMSISR(mode=mode, init_q=init_q)
     
 
 class SRLitModule(LightningModule):
@@ -53,6 +53,8 @@ class SRLitModule(LightningModule):
     def __init__(
         self,
         arch: str,
+        mode: int = 1,
+        init_q: bool = False,
         lr: float = 1e-4,
         lr_gamma: float = 0.5,
         lr_step: int = 10,
@@ -64,7 +66,7 @@ class SRLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False, ignore=["net"])
 
-        self.net = make_net(self.hparams.arch)
+        self.net = make_net(self.hparams.arch, self.hparams.mode, self.hparams.init_q)
 
         #data norm
         self.register_buffer("sub", torch.FloatTensor([0.5]).view(1, -1, 1, 1))
