@@ -98,7 +98,7 @@ class SRLitModule(LightningModule):
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = (pred_hr * self.div + self.sub).clamp_(0, 1)
             #hrs[scale] = hr
-        return loss, pred_hrs
+        return loss/len(batch), pred_hrs
 
     def training_step(self, batch: Any, batch_idx: int):
         loss, _= self.step(batch)

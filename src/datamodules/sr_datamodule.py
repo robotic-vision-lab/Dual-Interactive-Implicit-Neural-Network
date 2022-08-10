@@ -6,7 +6,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
 from torchvision.transforms import transforms
 
-from src.datamodules.components.srdata import SRData, SRDataTest
+from src.datamodules.components.srdata import SRDataDownsample
 
 
 class Rotation90:
@@ -54,11 +54,10 @@ class SRDataModule(LightningDataModule):
         trainsets_repeat: int = 20,
         testsets: list[Tuple[str,str]] = [("DIV2K",'train'), ('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')],
         batch_size: int = 64,
-        bin=True,
-        reset_bin=False,
-        scales: list[int] = [2,3,4],
+        train_scales: list[int] = [2,3,4],
+        test_scales: list[int] = [2, 2.5, 3, 3.5, 4, 6, 8, 10, 15, 20],
         patch_size: int = 192,
-        num_workers: int = 4*torch.cuda.device_count(),
+        num_workers: int = 16,
         pin_memory: bool = False,
     ):
         super().__init__()
@@ -66,7 +65,6 @@ class SRDataModule(LightningDataModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
-        self.test_scales = [2, 2.5, 3, 3.5, 4, 6, 8, 10, 15]
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
@@ -77,11 +75,9 @@ class SRDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        SRData(root=self.hparams.root,
+        SRDataDownsample(root=self.hparams.root,
                                 name='DIV2K',
                                 split='train',
-                                bin=self.hparams.bin,
-                                reset_bin=self.hparams.reset_bin,
                                 scales=self.hparams.scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=False)
@@ -97,19 +93,17 @@ class SRDataModule(LightningDataModule):
             trainset = []
             for name, split in self.hparams.trainsets:
                 if name == 'DIV2K':
-                    trainset.append(Subset(SRData(root=self.hparams.root,
+                    trainset.append(Subset(SRDataDownsample(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                bin=self.hparams.bin,
-                                scales=self.hparams.scales,
+                                scales=self.hparams.train_scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=True), indices=range(800)))
                 else:
-                    trainset.append(SRData(root=self.hparams.root,
+                    trainset.append(SRDataDownsample(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                bin=self.hparams.bin,
-                                scales=self.hparams.scales,
+                                scales=self.hparams.train_scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=True))
             trainset = ConcatDataset(trainset)
@@ -118,26 +112,25 @@ class SRDataModule(LightningDataModule):
             testset = []
             for name, split in self.hparams.testsets:
                 if name == 'DIV2K':
-                    testset.append(Subset(SRDataTest(root=self.hparams.root,
+                    testset.append(Subset(SRDataDownsample(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                scales=self.test_scales,
+                                scales=self.hparams.test_scales,
                                 patch_size=0,
                                 augment=False), indices=range(800, 900)))
                 else:
-                    testset.append(SRDataTest(root=self.hparams.root,
+                    testset.append(SRDataDownsample(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                scales=self.test_scales,
+                                scales=self.hparams.test_scales,
                                 patch_size=0,
                                 augment=False))
             self.data_test = testset
 
-            self.data_val = Subset(SRData(root=self.hparams.root,
+            self.data_val = Subset(SRDataDownsample(root=self.hparams.root,
                                 name='DIV2K',
                                 split='train',
-                                bin=True,
-                                scales=self.hparams.scales,
+                                scales=self.hparams.train_scales,
                                 patch_size=0,
                                 augment=False), indices=range(800, 900))
 

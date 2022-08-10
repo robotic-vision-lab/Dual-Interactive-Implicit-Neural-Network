@@ -112,12 +112,21 @@ data:
     - - benchmark
       - Urban100
     batch_size: 4
-    bin: true
-    reset_bin: false
-    scales:
+    train_scales:
     - 2
     - 3
     - 4
+    test_scales:
+    - 2
+    - 2.5
+    - 3
+    - 3.5
+    - 4
+    - 6
+    - 8
+    - 10
+    - 15
+    - 20
     patch_size: 48
     num_workers: 16
-    pin_memory: True
+    pin_memory: False
