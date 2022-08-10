@@ -72,8 +72,15 @@ class ImplicitDecoder(nn.Module):
                                             SineAct()))
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim
+        elif self.mode == 4:
+            for hidden_dim in hidden_dims:
+                self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
+                                            nn.ReLU()))
+                self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
+                                            SineAct()))
+                last_dim_K = hidden_dim + in_channels * 9
+                last_dim_Q = hidden_dim * 2
         self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
-        self.instance_norm = nn.InstanceNorm2d(hidden_dim, affine=False)
 
     def _make_pos_encoding(self, x, size): 
         B, C, H, W = x.shape
