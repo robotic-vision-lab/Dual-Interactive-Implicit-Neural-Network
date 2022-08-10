@@ -24,6 +24,12 @@ class SineAct(nn.Module):
     def forward(self, x):
         return torch.sin(x)
 
+def patch_norm_2d(x, kernel_size=3, padding=1):
+    B, C, H, W = x.shape
+    var, mean = torch.var_mean(F.unfold(x, kernel_size=kernel_size, padding=padding).view(B, C,kernel_size**2, H, W), dim=2, keepdim=False)
+    return (x - mean) / torch.sqrt(var + 1e-6)
+
+
 class ImplicitDecoder(nn.Module):
     def __init__(self, in_channels=64, hidden_dims=[256, 256, 256, 256], mode=1, init_q=False):
         super().__init__()
@@ -67,6 +73,7 @@ class ImplicitDecoder(nn.Module):
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim
         self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
+        self.instance_norm = nn.InstanceNorm2d(hidden_dim, affine=False)
 
     def _make_pos_encoding(self, x, size): 
         B, C, H, W = x.shape
@@ -114,7 +121,16 @@ class ImplicitDecoder(nn.Module):
                 q = k*self.Q[i](q)
             q = self.last_layer(q)
             return q
-
+        elif self.mode == 4:
+            k = self.K[0](x)
+            q = self.Q[0](syn_inp)
+            v = k * q
+            for i in range(1, len(self.K)):
+                k = self.K[i](torch.cat([v,x], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v, 3, 1), q], dim=1))
+                v = k * q
+            v = self.last_layer(v)
+            return v
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
