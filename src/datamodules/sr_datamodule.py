@@ -6,7 +6,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, Subset
 from torchvision.transforms import transforms
 
-from src.datamodules.components.srdata import SRData
+from src.datamodules.components.srdata import SRData, SRDataTest
 
 
 class Rotation90:
@@ -66,7 +66,7 @@ class SRDataModule(LightningDataModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
-
+        self.test_scales = [2, 2.5, 3, 3.5, 4, 6, 8, 10, 15]
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
@@ -118,19 +118,17 @@ class SRDataModule(LightningDataModule):
             testset = []
             for name, split in self.hparams.testsets:
                 if name == 'DIV2K':
-                    testset.append(Subset(SRData(root=self.hparams.root,
+                    testset.append(Subset(SRDataTest(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                bin=True,
-                                scales=self.hparams.scales,
+                                scales=self.test_scales,
                                 patch_size=0,
                                 augment=False), indices=range(800, 900)))
                 else:
-                    testset.append(SRData(root=self.hparams.root,
+                    testset.append(SRDataTest(root=self.hparams.root,
                                 name=name,
                                 split=split,
-                                bin=False,
-                                scales=self.hparams.scales,
+                                scales=self.test_scales,
                                 patch_size=0,
                                 augment=False))
             self.data_test = testset

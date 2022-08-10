@@ -6,7 +6,7 @@ from src.models.components.liif import LIIF
 from src.models.components.metasr import MetaSR
 from src.models.components.imsisr import IMSISR
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
-import os
+
 def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
     diff = (sr - hr) / rgb_range
     if dataset is not None:
@@ -94,7 +94,7 @@ class SRLitModule(LightningModule):
             lr, hr, _ = batch[scale]
             lr = (lr - self.sub) / self.div
             hr = (hr - self.sub) / self.div
-            pred_hr = self.forward(lr, [lr.shape[-2]*scale, lr.shape[-1]*scale], eval_bsize)
+            pred_hr = self.forward(lr, [round(lr.shape[-2]*scale), round(lr.shape[-1]*scale)], eval_bsize)
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = (pred_hr * self.div + self.sub).clamp_(0, 1)
             #hrs[scale] = hr
