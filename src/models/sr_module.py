@@ -1,3 +1,4 @@
+import re
 from typing import Any, List
 from functools import partial
 import torch
@@ -6,6 +7,14 @@ from src.models.components.liif import LIIF
 from src.models.components.metasr import MetaSR
 from src.models.components.imsisr import IMSISR
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
+from torchmetrics.functional import structural_similarity_index_measure as ssim
+from torchmetrics.functional import peak_signal_noise_ratio as psnr
+from torchvision import transforms
+
+def resize_fn(img, size):
+    return transforms.Resize(size=size,
+                            interpolation=transforms.InterpolationMode.BICUBIC,
+                            antialias=True)(img)
 
 def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
     diff = (sr - hr) / rgb_range
@@ -25,6 +34,8 @@ def calc_psnr(sr, hr, dataset=None, scale=1, rgb_range=1):
         valid = diff
     mse = valid.pow(2).mean()
     return -10 * torch.log10(mse)
+
+
 
 def make_net(arch, mode, init_q):
     if arch == 'liif':
@@ -133,23 +144,28 @@ class SRLitModule(LightningModule):
         pass
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
-        loss, pred_hrs = self.step(batch, self.hparams.eval_bsize)
-
-        B = len(batch) * batch[2][0].shape[0]
-        # log test metrics
-        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True, batch_size=B)
+        _, pred_hrs = self.step(batch, self.hparams.eval_bsize)
+        
+        res = {}
         for scale in batch:
-            if dataloader_idx == 0:
-                psnr_func = partial(calc_psnr, dataset='div2k', scale=scale, rgb_range=1)
-            else:
-                psnr_func = partial(calc_psnr, dataset='benchmark', scale=scale, rgb_range=1)
-            psnr = psnr_func(pred_hrs[scale], batch[scale][1])
-            self.log("test/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=B/len(batch))
-
-        return {}
+            #compute psnr
+            res['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=255)
+            #compute ssim
+            res['ssim_res'] = ssim(pred_hrs[scale], batch[scale][1], data_range=255)
+            #compute lr_psnr
+            lr_h = round(batch[scale][1].shape[-2] / scale) 
+            lr_w = round(batch[scale][1].shape[-1] / scale)
+            lr_pred = resize_fn(pred_hrs[scale], (lr_h, lr_w))
+            lr_target = resize_fn(batch[scale][1], (lr_h, lr_w))
+            res['lr_psnr_res'] = psnr(lr_pred, lr_target, data_range=255)
+            #logging
+            self.log("test/psnr_x{}".format(scale), res['psnr_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
+            self.log("test/ssim_x{}".format(scale), res['ssim_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
+            self.log("test/lr_psnr_x{}".format(scale), res['lr_psnr_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
+        return res
 
     def test_epoch_end(self, outputs: List[Any]):
-        pass
+        print(outputs)
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
