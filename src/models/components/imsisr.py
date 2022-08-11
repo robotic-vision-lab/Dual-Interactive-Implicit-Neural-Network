@@ -100,7 +100,7 @@ class ImplicitDecoder(nn.Module):
 
         return rel_grid.contiguous().detach()
 
-    def step(self, x, syn_inp):
+    def step(self, x, syn_inp, temp):
         if self.init_q:
             syn_inp = self.first_layer(syn_inp)
             x = syn_inp * x
@@ -134,19 +134,19 @@ class ImplicitDecoder(nn.Module):
             v = k * q
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([patch_norm_2d(v, 3, 1), q], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v, 2*(int(temp)) + 1, int(temp)), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
 
-    def batched_step(self, x, syn_inp, bsize):
+    def batched_step(self, x, syn_inp, bsize, temp):
         with torch.no_grad():
             h, w = syn_inp.shape[-2:]
             ql = 0
             preds = []
             while ql < w:
                 qr = min(ql + bsize//h, w)
-                pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr])
+                pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr], temp)
                 preds.append(pred)
                 ql = qr
             pred = torch.cat(preds, dim=-1)
@@ -161,7 +161,7 @@ class ImplicitDecoder(nn.Module):
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
 
         if bsize is None:
-            pred = self.step(x, syn_inp)
+            pred = self.step(x, syn_inp, (H_in*W_in)/(size[0]*size[1]))
         else:
-            pred = self.batched_step(x, syn_inp, bsize)
+            pred = self.batched_step(x, syn_inp, bsize, (H_in*W_in)/(size[0]*size[1]))
         return pred
