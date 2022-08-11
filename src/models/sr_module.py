@@ -105,7 +105,7 @@ class SRLitModule(LightningModule):
             lr, hr, _ = batch[scale]
             lr = (lr - self.sub) / self.div
             hr = (hr - self.sub) / self.div
-            pred_hr = self.forward(lr, [round(lr.shape[-2]*scale), round(lr.shape[-1]*scale)], eval_bsize)
+            pred_hr = self.forward(lr, hr.shape[-2:], eval_bsize)
             loss += self.criterion(pred_hr, hr)
             pred_hrs[scale] = (pred_hr * self.div + self.sub).clamp_(0, 1)
             #hrs[scale] = hr
