@@ -1,10 +1,17 @@
 from src.datamodules.sr_datamodule import *
 from src.models.sr_module import *
-from pytorch_lightning.utilities.cli import LightningCLI
-import torch
 from pytorch_lightning import Trainer
-import pdb
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument("--ckpt_path", type=str)
+args = parser.parse_args()
+
+def test(args):
+    model = SRLitModule.load_from_checkpoint(args.ckpt_path)
+    datamodule = SRDataModule()
+    trainer = Trainer(accelerator='gpu', devices=1)
+    trainer.test(model=model, datamodule=datamodule)
 
 if __name__=='__main__':
-    cli = LightningCLI(run=False, auto_registry=True, save_config_callback=None, parser_kwargs={"parser_mode": "omegaconf"})
-    pdb.set_trace()
+    test(args)
