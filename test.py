@@ -6,5 +6,5 @@ from pytorch_lightning import Trainer
 import pdb
 
 if __name__=='__main__':
-    cli = LightningCLI(auto_registry=True, save_config_callback=None, parser_kwargs={"parser_mode": "omegaconf"})
-    #pdb.set_trace()
+    cli = LightningCLI(run=False, auto_registry=True, save_config_callback=None, parser_kwargs={"parser_mode": "omegaconf"})
+    pdb.set_trace()

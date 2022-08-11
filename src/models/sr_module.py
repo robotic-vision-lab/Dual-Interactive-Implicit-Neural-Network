@@ -149,15 +149,15 @@ class SRLitModule(LightningModule):
         res = {}
         for scale in batch:
             #compute psnr
-            res['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=255)
+            res['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=1)
             #compute ssim
-            res['ssim_res'] = ssim(pred_hrs[scale], batch[scale][1], data_range=255)
+            res['ssim_res'] = ssim(pred_hrs[scale], batch[scale][1], data_range=1)
             #compute lr_psnr
             lr_h = round(batch[scale][1].shape[-2] / scale) 
             lr_w = round(batch[scale][1].shape[-1] / scale)
             lr_pred = resize_fn(pred_hrs[scale], (lr_h, lr_w))
             lr_target = resize_fn(batch[scale][1], (lr_h, lr_w))
-            res['lr_psnr_res'] = psnr(lr_pred, lr_target, data_range=255)
+            res['lr_psnr_res'] = psnr(lr_pred, lr_target, data_range=1)
             #logging
             self.log("test/psnr_x{}".format(scale), res['psnr_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
             self.log("test/ssim_x{}".format(scale), res['ssim_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
