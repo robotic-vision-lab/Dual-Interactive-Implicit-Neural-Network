@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=metasr
-#SBATCH --output=metasr
+#SBATCH --job-name=liif
+#SBATCH --output=liif.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mail-type=all
@@ -12,4 +12,4 @@
 eval "$(conda shell.bash hook)"
 cd /lustre/scratch5/hquan/projects/sisr
 conda activate clat
-python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=metasr --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=metasr
+python main.py fit -c configs/default.yaml --model=SRLitModule --model.arch=liif --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=liif
