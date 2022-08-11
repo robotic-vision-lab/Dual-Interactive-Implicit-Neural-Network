@@ -78,7 +78,7 @@ class SRDataModule(LightningDataModule):
         SRDataDownsample(root=self.hparams.root,
                                 name='DIV2K',
                                 split='train',
-                                scales=self.hparams.scales,
+                                scales=self.hparams.train_scales,
                                 patch_size=self.hparams.patch_size,
                                 augment=False)
 
