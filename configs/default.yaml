@@ -78,7 +78,7 @@ trainer:
   resume_from_checkpoint: null
   profiler: null
   benchmark: null
-  deterministic: null
+  deterministic: true
   reload_dataloaders_every_n_epochs: 0
   auto_lr_find: false
   replace_sampler_ddp: true
