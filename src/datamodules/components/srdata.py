@@ -202,7 +202,7 @@ class SRDataDownsample(Dataset):
                     return x
                 lr_patch = augment(lr_patch)
                 hr_patch = augment(hr_patch)
-            sample[scale] = (lr_patch, hr_patch, filename)
+            sample[scale] = (lr_patch.float()/255., hr_patch.float()/255., filename)
         return sample
 
     def _load_file(self, idx, scale):
