@@ -45,7 +45,7 @@ def make_net(arch, mode, init_q):
         return MetaSR()
     elif arch == 'imsisr':
         return IMSISR(mode=mode, init_q=init_q)
-    elif arch =='bicibic':
+    elif arch =='bicubic':
         return BICUBIC_NET()
     
 
