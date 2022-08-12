@@ -168,7 +168,7 @@ class ImplicitDecoder(nn.Module):
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1)
         if self.mode == 4:
-            mean, var = patch_norm_2d(x, 3)
+            mean, var = patch_norm_2d(x, 5)
             
             
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
