@@ -148,6 +148,7 @@ class SRLitModule(LightningModule):
         
         res = {}
         for scale in batch:
+            res[scale]={}
             #compute psnr
             res[scale]['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=1)
             #compute ssim
