@@ -78,8 +78,8 @@ class ImplicitDecoder(nn.Module):
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim
         elif self.mode == 4:
-            self.mean_proj = nn.Conv2d(in_channels, hidden_dim, 1)
-            self.var_proj = nn.Conv2d(in_channels, hidden_dim, 1)
+            self.mean_proj = nn.Conv2d(in_channels, hidden_dims[0], 1)
+            self.var_proj = nn.Conv2d(in_channels, hidden_dims[0], 1)
             for hidden_dim in hidden_dims:
                 self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
                                             nn.ReLU()))
