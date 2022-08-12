@@ -24,10 +24,15 @@ class SineAct(nn.Module):
     def forward(self, x):
         return torch.sin(x)
 
-def patch_norm_2d(x, kernel_size=3, padding=1):
-    B, C, H, W = x.shape
-    var, mean = torch.var_mean(F.unfold(x, kernel_size=kernel_size, padding=padding).view(B, C,kernel_size**2, H, W), dim=2, keepdim=False)
+def patch_norm_2d(x, kernel_size=3):
+    #B, C, H, W = x.shape
+    #var, mean = torch.var_mean(F.unfold(x, kernel_size=kernel_size, padding=padding).view(B, C,kernel_size**2, H, W), dim=2, keepdim=False)
+    #return (x - mean) / torch.sqrt(var + 1e-6)
+    mean = F.avg_pool2d(x, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
+    mean_sq = F.avg_pool2d(x**2, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
+    var = mean_sq - mean**2
     return (x - mean) / torch.sqrt(var + 1e-6)
+
 
 
 class ImplicitDecoder(nn.Module):
@@ -134,7 +139,7 @@ class ImplicitDecoder(nn.Module):
             v = k * q
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([patch_norm_2d(v, 3, 1), q], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v, 13, 6), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
