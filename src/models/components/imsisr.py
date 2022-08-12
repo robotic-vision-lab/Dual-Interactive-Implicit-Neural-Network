@@ -31,7 +31,7 @@ def patch_norm_2d(x, kernel_size=3):
     mean = F.avg_pool2d(x, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
     mean_sq = F.avg_pool2d(x**2, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
     var = mean_sq - mean**2
-    return mean, var + 1e-6
+    return (x-mean)/(var + 1e-6)
 
 
 
@@ -78,8 +78,6 @@ class ImplicitDecoder(nn.Module):
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim
         elif self.mode == 4:
-            self.mean_proj = nn.Conv2d(in_channels, hidden_dims[0], 1)
-            self.var_proj = nn.Conv2d(in_channels, hidden_dims[0], 1)
             for hidden_dim in hidden_dims:
                 self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
                                             nn.ReLU()))
@@ -107,7 +105,7 @@ class ImplicitDecoder(nn.Module):
 
         return rel_grid.contiguous().detach()
 
-    def step(self, x, syn_inp, mean, var):
+    def step(self, x, syn_inp):
         if self.init_q:
             syn_inp = self.first_layer(syn_inp)
             x = syn_inp * x
@@ -139,11 +137,9 @@ class ImplicitDecoder(nn.Module):
             k = self.K[0](x)
             q = self.Q[0](syn_inp)
             v = k * q
-            mean = F.interpolate(self.mean_proj(mean), size=x.shape[-2:], mode='nearest-exact')
-            var = F.interpolate(self.var_proj(var), size=x.shape[-2:], mode='nearest-exact')
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([(v-mean)/var, q], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v,3), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
@@ -166,15 +162,11 @@ class ImplicitDecoder(nn.Module):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        syn_inp = torch.cat([rel_coord, ratio], dim=1)
-        if self.mode == 4:
-            mean, var = patch_norm_2d(x, 7)
-            
-            
+        syn_inp = torch.cat([rel_coord, ratio], dim=1)          
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
         
         if bsize is None:
-            pred = self.step(x, syn_inp, mean, var)
+            pred = self.step(x, syn_inp)
         else:
-            pred = self.batched_step(x, syn_inp, bsize, mean, var)
+            pred = self.batched_step(x, syn_inp, bsize)
         return pred
