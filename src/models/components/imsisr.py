@@ -106,8 +106,6 @@ class ImplicitDecoder(nn.Module):
         return rel_grid.contiguous().detach()
 
     def step(self, x, syn_inp):
-        B, C, H_in, W_in = x.shape
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=syn_inp.shape[-2:], mode='nearest-exact')
         if self.init_q:
             syn_inp = self.first_layer(syn_inp)
             x = syn_inp * x
@@ -165,7 +163,7 @@ class ImplicitDecoder(nn.Module):
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1)          
-        
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=syn_inp.shape[-2:], mode='nearest-exact')
         if bsize is None:
             pred = self.step(x, syn_inp)
         else:
