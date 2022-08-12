@@ -31,7 +31,7 @@ def patch_norm_2d(x, kernel_size=3):
     mean = F.avg_pool2d(x, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
     mean_sq = F.avg_pool2d(x**2, kernel_size=kernel_size, stride=1, padding=kernel_size//2)
     var = mean_sq - mean**2
-    return (x - mean) / torch.sqrt(var + 1e-6)
+    return mean, var + 1e-6
 
 
 
@@ -48,8 +48,6 @@ class ImplicitDecoder(nn.Module):
             self.first_layer = nn.Sequential(nn.Conv2d(3, in_channels * 9, 1),
                                             SineAct())
             last_dim_Q = in_channels * 9
-        elif self.mode == 4:
-            last_dim_Q = 3 + in_channels
         else:
             last_dim_Q = 3
 
@@ -80,6 +78,8 @@ class ImplicitDecoder(nn.Module):
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim
         elif self.mode == 4:
+            self.mean_proj = nn.Conv2d(in_channels, hidden_dim, 1)
+            self.var_proj = nn.Conv2d(in_channels, hidden_dim, 1)
             for hidden_dim in hidden_dims:
                 self.K.append(nn.Sequential(nn.Conv2d(last_dim_K, hidden_dim, 1),
                                             nn.ReLU()))
@@ -107,7 +107,7 @@ class ImplicitDecoder(nn.Module):
 
         return rel_grid.contiguous().detach()
 
-    def step(self, x, syn_inp, temp):
+    def step(self, x, syn_inp, mean, var):
         if self.init_q:
             syn_inp = self.first_layer(syn_inp)
             x = syn_inp * x
@@ -139,21 +139,23 @@ class ImplicitDecoder(nn.Module):
             k = self.K[0](x)
             q = self.Q[0](syn_inp)
             v = k * q
+            mean = F.interpolate(self.mean_proj(mean), size=x.shape[-2:], mode='nearest-exact')
+            var = F.interpolate(self.var_proj(var), size=x.shape[-2:], mode='nearest-exact')
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([patch_norm_2d(v, 2*round(temp) + 1), q], dim=1))
+                q = self.Q[i](torch.cat([(v-mean)/var, q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
 
-    def batched_step(self, x, syn_inp, bsize, temp):
+    def batched_step(self, x, syn_inp, bsize, mean, var):
         with torch.no_grad():
             h, w = syn_inp.shape[-2:]
             ql = 0
             preds = []
             while ql < w:
                 qr = min(ql + bsize//h, w)
-                pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr], temp)
+                pred = self.step(x[:, :, :, ql: qr], syn_inp[:, :, :, ql: qr], mean, var)
                 preds.append(pred)
                 ql = qr
             pred = torch.cat(preds, dim=-1)
@@ -164,15 +166,15 @@ class ImplicitDecoder(nn.Module):
         B, C, H_in, W_in = x.shape
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
-        
+        syn_inp = torch.cat([rel_coord, ratio], dim=1)
         if self.mode == 4:
-            x_norm = F.interpolate(patch_norm_2d(x, 3), size=size, mode='nearest-exact')
-        else:
-            syn_inp = torch.cat([rel_coord, ratio, x_norm], dim=1)
+            mean, var = patch_norm_2d(x, 3)
+            
+            
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
         
         if bsize is None:
-            pred = self.step(x, syn_inp, (size[0]*size[1])/(H_in*W_in))
+            pred = self.step(x, syn_inp, mean, var)
         else:
-            pred = self.batched_step(x, syn_inp, bsize, (size[0]*size[1])/(H_in*W_in))
+            pred = self.batched_step(x, syn_inp, bsize, mean, var)
         return pred
