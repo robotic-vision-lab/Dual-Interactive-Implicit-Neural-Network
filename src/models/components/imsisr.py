@@ -134,7 +134,7 @@ class ImplicitDecoder(nn.Module):
             v = k * q
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([patch_norm_2d(v, 2*(int(temp)) + 1, int(temp)), q], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v, 2*(round(temp)) + 1, round(temp)), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
@@ -161,7 +161,7 @@ class ImplicitDecoder(nn.Module):
         x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=size, mode='nearest-exact')
 
         if bsize is None:
-            pred = self.step(x, syn_inp, (H_in*W_in)/(size[0]*size[1]))
+            pred = self.step(x, syn_inp, (size[0]*size[1])/(H_in*W_in))
         else:
-            pred = self.batched_step(x, syn_inp, bsize, (H_in*W_in)/(size[0]*size[1]))
+            pred = self.batched_step(x, syn_inp, bsize, (size[0]*size[1])/(H_in*W_in))
         return pred
