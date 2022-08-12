@@ -134,7 +134,7 @@ class ImplicitDecoder(nn.Module):
             v = k * q
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([patch_norm_2d(v, 2*(round(temp)) + 1, round(temp)), q], dim=1))
+                q = self.Q[i](torch.cat([patch_norm_2d(v, 3, 1), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
