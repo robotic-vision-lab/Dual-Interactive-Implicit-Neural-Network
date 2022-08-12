@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.models.components.rdn import make_rdn
+import math
 import pdb
 class IMSISR(nn.Module):
     def __init__(self,
@@ -139,7 +140,7 @@ class ImplicitDecoder(nn.Module):
             v = k * q
             for i in range(1, len(self.K)):
                 k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([v/torch.sqrt(self.K[i-1][0].out_channels), q], dim=1))
+                q = self.Q[i](torch.cat([v/math.sqrt(self.K[i-1][0].out_channels), q], dim=1))
                 v = k * q
             v = self.last_layer(v)
             return v
