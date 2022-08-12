@@ -1,6 +1,7 @@
 import re
 from typing import Any, List
 from functools import partial
+from xml.etree.ElementPath import xpath_tokenizer
 import torch
 from pytorch_lightning import LightningModule
 from src.models.components.liif import LIIF
@@ -44,7 +45,18 @@ def make_net(arch, mode, init_q):
         return MetaSR()
     elif arch == 'imsisr':
         return IMSISR(mode=mode, init_q=init_q)
+    elif arch =='bicibic':
+        return BICUBIC_NET()
     
+
+class BICUBIC_NET(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, x, size, eval_bsize=None):
+        return transforms.Resize(size=size,
+                            interpolation=transforms.InterpolationMode.BICUBIC,
+                            antialias=True)(x)
 
 class SRLitModule(LightningModule):
     """Example of LightningModule for MNIST classification.
