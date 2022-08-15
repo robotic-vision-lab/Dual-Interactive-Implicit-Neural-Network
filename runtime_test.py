@@ -1,51 +1,60 @@
-import timeit
+import torch.utils.benchmark as benchmark
 import torch
 from src.models.components.imsisr import IMSISR
 from src.models.components.liif import LIIF
 from src.models.components.metasr import MetaSR
 from src.models.sr_module import BICUBIC_NET
 
-bicubic_m = BICUBIC_NET()
-metasr_m = MetaSR()
-liif_m = LIIF()
-imsisr_m = IMSISR(3, False)
+bicubic_m = BICUBIC_NET().cuda()
+metasr_m = MetaSR().cuda()
+liif_m = LIIF().cuda()
+imsisr_m = IMSISR(3, False).cuda()
+num_threads = torch.get_num_threads()
 
+@torch.no_grad()
 def bicubic(x, size):
     return bicubic_m(x, (size, size))
 
+@torch.no_grad()
 def metasr(x, size):
     return metasr_m(x, (size, size))
 
+@torch.no_grad()
 def liif(x, size):
     return liif_m(x, (size, size))
 
+@torch.no_grad()
 def imsisr(x, size):
     return imsisr_m(x, (size, size))
 
-x = torch.rand(16,3,48,48)
+x = torch.rand(1,3,48,48).cuda()
 
 for size in [128, 256, 512]:
-    tbicubic = timeit.Timer(
+    tbicubic = benchmark.Timer(
         stmt='bicubic(x, size)',
         setup='from __main__ import bicubic',
-        globals={'x': x, 'size': size})
+        globals={'x': x, 'size': size},
+        num_threads=num_threads)
 
-    tmetasr = timeit.Timer(
+    tmetasr = benchmark.Timer(
         stmt='metasr(x, size)',
         setup='from __main__ import metasr',
-        globals={'x': x, 'size': size})
+        globals={'x': x, 'size': size},
+        num_threads=num_threads)
     
-    tliif = timeit.Timer(
+    tliif = benchmark.Timer(
         stmt='liif(x, size)',
         setup='from __main__ import liif',
-        globals={'x': x, 'size': size})
+        globals={'x': x, 'size': size},
+        num_threads=num_threads)
 
-    timsisr = timeit.Timer(
+    timsisr = benchmark.Timer(
         stmt='imsisr(x, size)',
         setup='from __main__ import imsisr',
-        globals={'x': x, 'size': size})
+        globals={'x': x, 'size': size},
+        num_threads=num_threads)
 
-print(f'bicubic: {tbicubic.timeit(100) / 100 * 1e6:>5.1f} us')
-print(f'metasr: {tmetasr.timeit(100) / 100 * 1e6:>5.1f} us')
-print(f'liif: {tliif.timeit(100) / 100 * 1e6:>5.1f} us')
-print(f'imsisr: {timsisr.timeit(100) / 100 * 1e6:>5.1f} us')
+    print(size, tbicubic.timeit(100))
+    print(size, tmetasr.timeit(100))
+    print(size, tliif.timeit(100))
+    print(size, timsisr.timeit(100))
