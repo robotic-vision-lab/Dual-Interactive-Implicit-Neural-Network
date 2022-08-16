@@ -85,7 +85,7 @@ class ImplicitDecoder(nn.Module):
                 self.Q.append(nn.Sequential(nn.Conv2d(last_dim_Q, hidden_dim, 1),
                                             SineAct()))
                 last_dim_K = hidden_dim + in_channels * 9
-                last_dim_Q = hidden_dim * 2
+                last_dim_Q = hidden_dim 
         if self.mode == 4:
             self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 3, padding=1, padding_mode='reflect')
         else:
