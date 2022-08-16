@@ -86,7 +86,10 @@ class ImplicitDecoder(nn.Module):
                                             SineAct()))
                 last_dim_K = hidden_dim + in_channels * 9
                 last_dim_Q = hidden_dim * 2
-        self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
+        if self.mode == 4:
+            self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 3, padding=1, padding_mode='reflect')
+        else:
+            self.last_layer = nn.Conv2d(hidden_dims[-1], 3, 1)
 
     def _make_pos_encoding(self, x, size): 
         B, C, H, W = x.shape
@@ -136,14 +139,12 @@ class ImplicitDecoder(nn.Module):
             return q
         elif self.mode == 4:
             k = self.K[0](x)
-            q = self.Q[0](syn_inp)
-            v = k * q
+            q = k*self.Q[0](syn_inp)
             for i in range(1, len(self.K)):
-                k = self.K[i](torch.cat([v,x], dim=1))
-                q = self.Q[i](torch.cat([v/math.sqrt(self.K[i-1][0].out_channels), q], dim=1))
-                v = k * q
-            v = self.last_layer(v)
-            return v
+                k = self.K[i](torch.cat([q,x], dim=1))
+                q = k*self.Q[i](q)
+            q = self.last_layer(q)
+            return q
 
     def batched_step(self, x, syn_inp, bsize):
         with torch.no_grad():
@@ -164,7 +165,7 @@ class ImplicitDecoder(nn.Module):
         rel_coord = self._make_pos_encoding(x, size).expand(B, -1, *size) #2
         ratio = x.new_tensor([(H_in*W_in)/(size[0]*size[1])]).view(1, -1, 1, 1).expand(B, -1, *size) #2
         syn_inp = torch.cat([rel_coord, ratio], dim=1)          
-        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=syn_inp.shape[-2:], mode='bilinear', align_corners=False)
+        x = F.interpolate(F.unfold(x, 3, padding=1).view(B, C*9, H_in, W_in), size=syn_inp.shape[-2:], mode='nearest-exact')
         if bsize is None:
             pred = self.step(x, syn_inp)
         else:
