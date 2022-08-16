@@ -4,7 +4,7 @@ from src.models.components.imsisr import IMSISR
 from src.models.components.liif import LIIF
 from src.models.components.metasr import MetaSR
 from src.models.sr_module import BICUBIC_NET
-
+from torch.nn.functional import avg_pool2d
 bicubic_m = BICUBIC_NET().cuda()
 metasr_m = MetaSR().cuda()
 liif_m = LIIF().cuda()
@@ -25,7 +25,7 @@ def liif(x, size):
 
 @torch.no_grad()
 def imsisr(x, size):
-    return imsisr_m(x, (size, size))
+    return avg_pool2d(imsisr_m(x, (size, size)), 3, 1, 1)
 
 x = torch.rand(1,3,48,48).cuda()
 

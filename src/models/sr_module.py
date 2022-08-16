@@ -11,6 +11,7 @@ from torchmetrics import MaxMetric, PeakSignalNoiseRatio
 from torchmetrics.functional import structural_similarity_index_measure as ssim
 from torchmetrics.functional import peak_signal_noise_ratio as psnr
 from torchvision import transforms
+from torch.nn.functional import avg_pool2d
 
 def resize_fn(img, size):
     return transforms.Resize(size=size,
@@ -160,6 +161,7 @@ class SRLitModule(LightningModule):
         
         res = {}
         for scale in batch:
+            pred_hrs[scale] = avg_pool2d(pred_hrs[scale], 3, 1, 1)
             res[scale]={}
             #compute psnr
             res[scale]['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=1)

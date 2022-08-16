@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from torchvision.io import read_image, ImageReadMode
 from torchvision.utils import save_image
 from torchvision import transforms
+from torch.nn.functional import avg_pool2d
 import glob
 import os
 parser = ArgumentParser()
@@ -33,7 +34,7 @@ def demo(args):
         
         for s in [6, 4, 3, 2, 1]:
             sr = model(lr, (round(hr.shape[-2]/s), round(hr.shape[-1]/s)))
-            save_image(sr, os.path.dirname(f_hr) + "/{}/{}_x{}.png".format(args.model_name, filename, s))
+            save_image(avg_pool2d(sr, 3, 1, 1), os.path.dirname(f_hr) + "/{}/{}_x{}.png".format(args.model_name, filename, s))
 
 
 if __name__=='__main__':
