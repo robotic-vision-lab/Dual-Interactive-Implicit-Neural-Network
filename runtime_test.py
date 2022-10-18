@@ -9,27 +9,29 @@ bicubic_m = BICUBIC_NET().cuda()
 metasr_m = MetaSR().cuda()
 liif_m = LIIF().cuda()
 imsisr_m = IMSISR(3, False).cuda()
-num_threads = torch.get_num_threads()
+#num_threads = torch.get_num_threads()
+num_threads = 1
 
-@torch.no_grad()
+#@torch.no_grad()
 def bicubic(x, size):
     return bicubic_m(x, (size, size))
 
-@torch.no_grad()
+#@torch.no_grad()
 def metasr(x, size):
     return metasr_m(x, (size, size))
 
-@torch.no_grad()
+#@torch.no_grad()
 def liif(x, size):
     return liif_m(x, (size, size))
 
-@torch.no_grad()
+#@torch.no_grad()
 def imsisr(x, size):
-    return avg_pool2d(imsisr_m(x, (size, size)), 3, 1, 1)
+    return imsisr_m(x, (size, size))
 
 x = torch.rand(1,3,48,48).cuda()
 
-for size in [128, 256, 512]:
+for s in [2, 3, 4, 6, 8]:
+    size = 48*s
     tbicubic = benchmark.Timer(
         stmt='bicubic(x, size)',
         setup='from __main__ import bicubic',
