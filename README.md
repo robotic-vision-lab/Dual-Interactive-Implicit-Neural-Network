@@ -37,16 +37,16 @@ conda install pytorch-lightning -c conda-forge
 conda install omegaconf rich -c conda-forge
 ```
 
-Train models with default configuration, located at [configs/default.yaml/](configs/default.yaml). You may edit the config file to best utilize your machine.
+Train models with default configuration, located at [configs/default.yaml](configs/default.yaml). You may edit the config file to best utilize your machine.
 
 ```bash
 python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
 ```
 
-Train model with chosen experiment configuration from [configs/experiment/](configs/experiment/)
+To benchmark a trained model with the benchmark datasets used in the paper.
 
 ```bash
-python train.py experiment=experiment_name.yaml
+python test.py --ckpt_path=<path_to_checkpoint>                                          
 ```
 
 You can override any parameter from command line like this
