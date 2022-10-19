@@ -1,4 +1,3 @@
-from src.datamodules.sr_datamodule import *
 from src.models.sr_module import *
 from pytorch_lightning import Trainer
 from argparse import ArgumentParser
@@ -14,7 +13,6 @@ from pathlib import Path
 parser = ArgumentParser()
 parser.add_argument("--scale", type=float)
 parser.add_argument("--ckpt_path", type=str)
-parser.add_argument("--hr_demo_path", type=str)
 parser.add_argument("--model_name", type=str)
 parser.add_argument("--file_ext", type=str, default='.png')
 args = parser.parse_args()
@@ -27,7 +25,6 @@ def resize_fn(img, size):
 @torch.no_grad()
 def demo(args):
     #load image
-    #hr_path = args.hr_demo_path
     hr_path = "./demo/"
     names_hr = sorted(glob.glob(os.path.join(str(hr_path), '*'+args.file_ext)))
     if args.model_name == 'bicubic':
@@ -48,7 +45,6 @@ def demo(args):
 @torch.no_grad()
 def demo2(args):
     #load image
-    #hr_path = args.hr_demo_path
     hr_path = "./demo/"
     names_hr = sorted(glob.glob(os.path.join(str(hr_path), '*'+args.file_ext)))
     if args.model_name == 'bicubic':
