@@ -13,7 +13,7 @@
 
 ## Description
 
-What it does
+This repository contains the code for "Single Image Super-Resolution via a Dual Interactive Implicit Neural Network"
 
 ## How to run
 
@@ -32,10 +32,12 @@ conda activate myenv
 # https://pytorch.org/get-started/
 
 # install requirements
-pip install -r requirements.txt
+conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
+conda install pytorch-lightning -c conda-forge
+conda install omegaconf rich -c conda-forge
 ```
 
-Train model with default configuration
+Train model with default configuration, located at configs/default.yaml
 
 ```bash
 # train on CPU
