@@ -13,7 +13,7 @@ from pathlib import Path
 parser = ArgumentParser()
 parser.add_argument("--scale", type=float)
 parser.add_argument("--ckpt_path", type=str)
-parser.add_argument("--model_name", type=str)
+parser.add_argument("--model_name", type=str, default='test')
 parser.add_argument("--file_ext", type=str, default='.png')
 args = parser.parse_args()
 
