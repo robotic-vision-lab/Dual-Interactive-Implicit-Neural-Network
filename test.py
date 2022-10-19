@@ -9,7 +9,7 @@ parser.add_argument("--bicubic_test", action='store_true')
 args = parser.parse_args()
 
 def test(args):
-    datamodule = SRDataModule()
+    datamodule = SRDataModule(testsets=[('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')], test_scales=[3.14,4,8], num_workers=0)
     trainer = Trainer(accelerator='gpu', devices=1)
     if args.bicubic_test:
         model = SRLitModule(arch='bicubic')

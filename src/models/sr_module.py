@@ -1,5 +1,5 @@
 import re
-from typing import Any, List
+from typing import Any, List, Optional
 from functools import partial
 from xml.etree.ElementPath import xpath_tokenizer
 import torch
@@ -156,12 +156,12 @@ class SRLitModule(LightningModule):
     def validation_epoch_end(self, outputs: List[Any]):
         pass
 
-    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int):
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]):
         _, pred_hrs = self.step(batch, self.hparams.eval_bsize)
         
         res = {}
         for scale in batch:
-            pred_hrs[scale] = avg_pool2d(pred_hrs[scale], 3, 1, 1)
+            pred_hrs[scale] = pred_hrs[scale]
             res[scale]={}
             #compute psnr
             res[scale]['psnr_res'] = psnr(pred_hrs[scale], batch[scale][1], data_range=1)
