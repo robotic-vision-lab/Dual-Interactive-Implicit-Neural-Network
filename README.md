@@ -13,7 +13,7 @@
 
 ## Description
 
-This repository contains the code for "Single Image Super-Resolution via a Dual Interactive Implicit Neural Network"
+This repository contains the implementation of the paper "Single Image Super-Resolution via a Dual Interactive Implicit Neural Network" (Accepted to WACV 2023).
 
 ## How to run
 
@@ -37,14 +37,10 @@ conda install pytorch-lightning -c conda-forge
 conda install omegaconf rich -c conda-forge
 ```
 
-Train model with default configuration, located at configs/default.yaml
+Train models with default configuration, located at [configs/default.yaml/](configs/default.yaml). You may edit the config file to best utilize your machine.
 
 ```bash
-# train on CPU
-python train.py trainer.gpus=0
-
-# train on GPU
-python train.py trainer.gpus=1
+python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
 ```
 
 Train model with chosen experiment configuration from [configs/experiment/](configs/experiment/)
