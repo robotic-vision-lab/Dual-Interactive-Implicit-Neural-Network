@@ -4,8 +4,6 @@
 
 <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
 <a href="https://pytorchlightning.ai/"><img alt="Lightning" src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white"></a>
-[![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
-[![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)
 
 </div>
 
@@ -19,15 +17,12 @@ Install dependencies
 
 ```bash
 # clone project
-git clone https://github.com/YourGithubName/your-repo-name
-cd your-repo-name
+git clone https://github.com/robotic-vision-lab/Dual-Interactive-Implicit-Neural-Network.git
+cd Dual-Interactive-Implicit-Neural-Network
 
-# [OPTIONAL] create conda environment
+# create conda environment
 conda create -n myenv python=3.8
 conda activate myenv
-
-# install pytorch according to instructions
-# https://pytorch.org/get-started/
 
 # install requirements
 conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
