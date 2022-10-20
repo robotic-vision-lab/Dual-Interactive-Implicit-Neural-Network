@@ -13,7 +13,7 @@ This repository contains the implementation of the paper "Single Image Super-Res
 
 ## How to run
 
-Install dependencies
+Setting up with conda
 
 ```bash
 # clone project
@@ -30,7 +30,7 @@ conda install pytorch-lightning -c conda-forge
 conda install omegaconf rich -c conda-forge
 ```
 
-Train models with default configuration, located at [configs/default.yaml](configs/default.yaml). You may edit the config file to best utilize your machine.
+Train models with default configuration, located at [configs/default.yaml](configs/default.yaml). You may edit the config file to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
 
 ```bash
 python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
