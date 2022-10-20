@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning import LightningModule
 from src.models.components.liif import LIIF
 from src.models.components.metasr import MetaSR
-from src.models.components.imsisr import IMSISR
+from src.models.components.diinn import DIINN
 from torchmetrics import MaxMetric, PeakSignalNoiseRatio
 from torchmetrics.functional import structural_similarity_index_measure as ssim
 from torchmetrics.functional import peak_signal_noise_ratio as psnr
@@ -44,8 +44,8 @@ def make_net(arch, mode, init_q):
         return LIIF()
     elif arch == 'metasr':
         return MetaSR()
-    elif arch == 'imsisr':
-        return IMSISR(mode=mode, init_q=init_q)
+    elif arch == 'diinn':
+        return DIINN(mode=mode, init_q=init_q)
     elif arch =='bicubic':
         return BICUBIC_NET()
     

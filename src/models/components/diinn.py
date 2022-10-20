@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from src.models.components.rdn import make_rdn
 import math
 import pdb
-class IMSISR(nn.Module):
+class DIINN(nn.Module):
     def __init__(self,
                  mode, init_q):
         super().__init__()
