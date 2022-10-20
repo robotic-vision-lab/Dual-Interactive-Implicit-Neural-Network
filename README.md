@@ -66,10 +66,10 @@ The folder structure should be:
 └── ...
 ```
 
-To train models with default configuration, located at [configs/default.yaml](configs/default.yaml): 
+To train a model with default training configuration, located at [configs/default.yaml](configs/default.yaml): 
 
 ```bash
-python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
+python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=diinn --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
 ```
 You may edit [configs/default.yaml](configs/default.yaml) to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
 
@@ -80,4 +80,8 @@ To benchmark a trained model with the benchmark datasets used in the paper:
 python benchmarks.py --ckpt_path=<path_to_checkpoint>                                          
 ```
 
+To super-resolve an LR image to a desired resolution:
 
+```bash
+python demo2.py --lr_path=<path_to_lr_image> --ckpt_path=<path_to_ckpt> --output_size <height> <width>
+```
