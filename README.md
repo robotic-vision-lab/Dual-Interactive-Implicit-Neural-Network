@@ -30,7 +30,6 @@ conda install pytorch-lightning -c conda-forge
 conda install omegaconf rich -c conda-forge
 ```
 
-Datasets
 We used the following datasets in the paper:
 
 [DIV2K - Agustsson, E., & Timofte, R. CVPRW 2017](https://data.vision.ee.ethz.ch/cvl/DIV2K/),
@@ -66,13 +65,16 @@ The folder structure should be:
 |               ├── ...
 └── ...
 ```
-Train models with default configuration, located at [configs/default.yaml](configs/default.yaml). You may edit the config file to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
+
+To train models with default configuration, located at [configs/default.yaml](configs/default.yaml): 
 
 ```bash
 python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=imsisr --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
 ```
+You may edit [configs/default.yaml](configs/default.yaml) to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
 
-To benchmark a trained model with the benchmark datasets used in the paper.
+
+To benchmark a trained model with the benchmark datasets used in the paper:
 
 ```bash
 python benchmarks.py --ckpt_path=<path_to_checkpoint>                                          
