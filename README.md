@@ -30,6 +30,42 @@ conda install pytorch-lightning -c conda-forge
 conda install omegaconf rich -c conda-forge
 ```
 
+Datasets
+We used the following datasets in the paper:
+
+[DIV2K - Agustsson, E., & Timofte, R. CVPRW 2017](https://data.vision.ee.ethz.ch/cvl/DIV2K/),
+
+[Set5 - Bevilacqua et al. BMVC 2012](http://people.rennes.inria.fr/Aline.Roumy/results/SR_BMVC12.html),
+
+[Set14 - Zeyde et al. LNCS 2010](https://sites.google.com/site/romanzeyde/research-interests),
+
+[B100 - Martin et al. ICCV 2001](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/),
+
+[Urban100 - Huang et al. CVPR 2015](https://sites.google.com/site/jbhuang0604/publications/struct_sr).
+
+The folder structure should be:
+
+├── data
+│   ├── DIV2K
+│   │   ├── DIV2K_train_HR
+│   │       │── 0001.png
+|   |       │── ...
+|   |       │── 0900.png
+│   └── benchmark
+│       ├── Set5
+|       |   ├── HR
+|       |       ├── ...
+|       ├── Set14
+|       |   ├── HR
+|       |       ├── ...
+|       ├── B100
+|       |   ├── HR
+|       |       ├── ...
+|       └── Urban100
+|           ├── HR
+|               ├── ...
+└── ...
+
 Train models with default configuration, located at [configs/default.yaml](configs/default.yaml). You may edit the config file to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
 
 ```bash
