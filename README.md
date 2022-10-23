@@ -85,3 +85,7 @@ To super-resolve an LR image to a desired resolution:
 ```bash
 python demo2.py --lr_path=<path_to_lr_image> --ckpt_path=<path_to_ckpt> --output_size <height> <width>
 ```
+
+### License
+
+[![license](https://img.shields.io/badge/license-Apache%202-blue)](https://github.com/robotic-vision-lab/Dual-Interactive-Implicit-Neural-Network/blob/main/LICENSE)
