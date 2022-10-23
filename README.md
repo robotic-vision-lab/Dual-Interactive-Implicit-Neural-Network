@@ -92,7 +92,7 @@ The data folder structure should be the following:
 ### Usage
 
 #### Training
-To train a model with default the configuration located at
+To train a model with the default configuration located at
 [configs/default.yaml](configs/default.yaml), run the following command 
 
     $ python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=diinn --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
