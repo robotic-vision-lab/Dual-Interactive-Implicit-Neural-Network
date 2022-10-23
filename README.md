@@ -4,12 +4,12 @@
 <img src="images/overview.png" alt="overview" width="400"/>
 
 Single image super-resolution (SISR) is a fundamental low-level computer vision
-problem that aims to recover a high-resolution (HR) image from its
-low-resolution (LR) counterpart. There are two main reasons for performing SISR:
-(i) to enhance the visual quality of an image for human consumption, and (ii) to
-improve the representation of an image for machine perception. SISR has many
-practical applications including robotics, remote sensing, satellite imaging,
-thermal imaging, medical imaging, and much more.
+problem that aims to recover a high-resolution image from its low-resolution
+counterpart. There are two main reasons for performing SISR: (i) to enhance the
+visual quality of an image for human consumption, and (ii) to improve the
+representation of an image for machine perception. SISR has many practical
+applications including robotics, remote sensing, satellite imaging, thermal
+imaging, medical imaging, and much more.
 
 This repository provides source code for our 2023 WACV paper titled "[Single
 Image Super-Resolution via a Dual Interactive Implicit Neural Network]()." Our
