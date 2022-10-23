@@ -1,48 +1,72 @@
-<div align="center">
+## Single Image Super-Resolution via a Dual Interactive Implicit Neural Network
 
-# SISR via a Dual Interactive Implicit Neural Network
+### Overview
+<img src="images/overview.png" alt="overview" width="400"/>
 
-<a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
-<a href="https://pytorchlightning.ai/"><img alt="Lightning" src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white"></a>
+Single image super-resolution (SISR) is a fundamental low-level computer vision
+problem that aims to recover a high-resolution (HR) image from its
+low-resolution (LR) counterpart. There are two main reasons for performing SISR:
+(i) to enhance the visual quality of an image for human consumption, and (ii) to
+improve the representation of an image for machine perception. SISR has many
+practical applications including robotics, remote sensing, satellite imaging,
+thermal imaging, medical imaging, and much more.
 
-</div>
+This repository provides source code for our 2023 WACV paper titled "[Single
+Image Super-Resolution via a Dual Interactive Implicit Neural Network]()." Our
+dual interactive implicit neural network (DIINN) is capable of producing images
+of arbitrary resolution, using a single trained model, by capturing the
+underlying implicit representation of the input image. DIINN achieves
+state-of-the-art SISR results on extensive experimental evaluations across many
+settings and datasets. 
 
-## Description
+### Citation
+If you find this project useful, then please consider citing our work.
 
-This repository contains the implementation of the paper "Single Image Super-Resolution via a Dual Interactive Implicit Neural Network" (Accepted to WACV 2023).
-
-## How to run
-
-Setting up with conda
-
-```bash
-# clone project
-git clone https://github.com/robotic-vision-lab/Dual-Interactive-Implicit-Neural-Network.git
-cd Dual-Interactive-Implicit-Neural-Network
-
-# create conda environment
-conda create -n myenv python=3.8
-conda activate myenv
-
-# install requirements
-conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
-conda install pytorch-lightning -c conda-forge
-conda install omegaconf rich -c conda-forge
+```bibitex
+@inproceedings{nguyen2023single,
+  title={Single Image Super-Resolution via a Dual Interactive Implicit Neural Network},
+  author={Nguyen, Quan H. and Beksi, William J},
+  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+  pages={},
+  year={2023}
+}
 ```
 
-We used the following datasets in the paper:
+### Model Architecture
+<img src="images/model_architecture.png" alt="model_architecture" width="800"/>
 
-[DIV2K - Agustsson, E., & Timofte, R. CVPRW 2017](https://data.vision.ee.ethz.ch/cvl/DIV2K/),
+### Installation 
+First, clone the project
 
-[Set5 - Bevilacqua et al. BMVC 2012](http://people.rennes.inria.fr/Aline.Roumy/results/SR_BMVC12.html),
+    $ git clone https://github.com/robotic-vision-lab/Dual-Interactive-Implicit-Neural-Network.git
+    $ cd Dual-Interactive-Implicit-Neural-Network
 
-[Set14 - Zeyde et al. LNCS 2010](https://sites.google.com/site/romanzeyde/research-interests),
+Then, create a running environment via conda
 
-[B100 - Martin et al. ICCV 2001](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/),
+    $ conda create -n myenv python=3.8
+    $ conda activate myenv
 
-[Urban100 - Huang et al. CVPR 2015](https://sites.google.com/site/jbhuang0604/publications/struct_sr).
+Finally, install the software requirements
 
-The folder structure should be:
+    $ conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
+    $ conda install pytorch-lightning -c conda-forge
+    $ conda install omegaconf rich -c conda-forge
+
+### Datasets 
+The following datasets are used to evaluate this work:
+
+* [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/)
+
+* [Set5](http://people.rennes.inria.fr/Aline.Roumy/results/SR_BMVC12.html)
+
+* [Set14](https://sites.google.com/site/romanzeyde/research-interests)
+
+* [B100](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/)
+
+* [Urban100](https://github.com/jbhuang0604/SelfExSR)
+
+The data folder structure should be the following:
+
 ```
 ├── data
 │   ├── DIV2K
@@ -65,26 +89,29 @@ The folder structure should be:
 |               ├── ...
 └── ...
 ```
+### Usage
 
-To train a model with default training configuration, located at [configs/default.yaml](configs/default.yaml): 
+#### Training
+To train a model with default training configuration, located at
+[configs/default.yaml](configs/default.yaml), run the following command 
 
-```bash
-python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=diinn --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
-```
-You may edit [configs/default.yaml](configs/default.yaml) to best utilize your machine. Here, --model.mode=3 and --model.init_q=False are the configuration of our final model (i.e., model (f) in the paper).
+    $ python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=diinn --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
 
+You may edit [configs/default.yaml](configs/default.yaml) to best utilize your
+machine resources. For example, --model.mode=3 and --model.init_q=False is the
+configuration of our final model (i.e., model (f) in the paper).
 
-To benchmark a trained model with the benchmark datasets used in the paper:
+#### Benchmarks
 
-```bash
-python benchmarks.py --ckpt_path=<path_to_checkpoint>                                          
-```
+To benchmark a trained model with the datasets used in the paper, run
 
-To super-resolve an LR image to a desired resolution:
+    $ python benchmarks.py --ckpt_path=<path_to_checkpoint>
 
-```bash
-python demo2.py --lr_path=<path_to_lr_image> --ckpt_path=<path_to_ckpt> --output_size <height> <width>
-```
+#### Super-Resolution
+
+A low-resolution image can be super-resolved to a desired resolution as follows
+
+    $ python demo2.py --lr_path=<path_to_lr_image> --ckpt_path=<path_to_ckpt> --output_size <height> <width>
 
 ### License
 
