@@ -49,7 +49,7 @@ Then, create a running environment via conda
 Finally, install the software requirements
 
     $ conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
-    $ conda install pytorch-lightning -c conda-forge
+    $ conda install pytorch-lightning=1.6 -c conda-forge
     $ conda install omegaconf rich -c conda-forge
 
 ### Datasets 
