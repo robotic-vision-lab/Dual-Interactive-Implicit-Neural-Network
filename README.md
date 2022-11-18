@@ -1,7 +1,6 @@
 ## Single Image Super-Resolution via a Dual Interactive Implicit Neural Network
 
 ### Overview
-<img src="images/overview.png" alt="overview" width="400"/>
 
 Single image super-resolution (SISR) is a fundamental low-level computer vision
 problem that aims to recover a high-resolution image from its low-resolution
@@ -11,15 +10,20 @@ representation of an image for machine perception. SISR has many practical
 applications including robotics, remote sensing, satellite imaging, thermal
 imaging, medical imaging, and much more.
 
+<p align="center">
+<img src="images/overview.png" alt="overview" width="400"/>
+</p>
+
 This repository provides source code for our 2023 WACV paper titled "[Single
-Image Super-Resolution via a Dual Interactive Implicit Neural Network]()." Our
-dual interactive implicit neural network (DIINN) is capable of producing images
-of arbitrary resolution, using a single trained model, by capturing the
-underlying implicit representation of the input image. DIINN achieves
-state-of-the-art SISR results on extensive experimental evaluations across many
-settings and datasets. 
+Image Super-Resolution via a Dual Interactive Implicit Neural
+Network](https://arxiv.org/pdf/2210.12593.pdf)." Our dual interactive implicit
+neural network (DIINN) is capable of producing images of arbitrary resolution,
+using a single trained model, by capturing the underlying implicit
+representation of the input image. DIINN achieves state-of-the-art SISR results
+on extensive experimental evaluations across many settings and datasets. 
 
 ### Citation
+
 If you find this project useful, then please consider citing our work.
 
 ```bibitex
@@ -33,9 +37,13 @@ If you find this project useful, then please consider citing our work.
 ```
 
 ### Model Architecture
+
+<p align="center">
 <img src="images/model_architecture.png" alt="model_architecture" width="800"/>
+</p>
 
 ### Installation 
+
 First, clone the project
 
     $ git clone https://github.com/robotic-vision-lab/Dual-Interactive-Implicit-Neural-Network.git
@@ -53,7 +61,8 @@ Finally, install the software requirements
     $ conda install omegaconf rich -c conda-forge
 
 ### Datasets 
-The following datasets are used to evaluate this work:
+
+The following datasets were used to evaluate this work:
 
 * [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/)
 
@@ -91,7 +100,8 @@ The data folder structure should be the following:
 ```
 ### Usage
 
-#### Training
+#### Model Training
+
 To train a model with the default configuration located in
 [configs/default.yaml](configs/default.yaml), run the following command 
 
@@ -101,13 +111,13 @@ You may edit [configs/default.yaml](configs/default.yaml) to best utilize your
 machine resources. For example, --model.mode=3 and --model.init_q=False is the
 configuration of our final model (i.e., model (f) in the paper).
 
-#### Benchmarks
+#### Running Benchmarks
 
 To benchmark a trained model with the datasets used in the paper, run
 
     $ python benchmarks.py --ckpt_path=<path_to_checkpoint>
 
-#### Super-Resolution
+#### Super-Resolution Example
 
 A low-resolution image can be super-resolved to a desired resolution as follows
 
