@@ -16,11 +16,11 @@ imaging, medical imaging, and much more.
 
 This repository provides source code for our 2023 WACV paper titled "[Single
 Image Super-Resolution via a Dual Interactive Implicit Neural
-Network](https://arxiv.org/pdf/2210.12593.pdf)." Our dual interactive implicit
-neural network (DIINN) is capable of producing images of arbitrary resolution,
-using a single trained model, by capturing the underlying implicit
-representation of the input image. DIINN achieves state-of-the-art SISR results
-on extensive experimental evaluations across many settings and datasets. 
+Network](https://openaccess.thecvf.com/content/WACV2023/papers/Nguyen_Single_Image_Super-Resolution_via_a_Dual_Interactive_Implicit_Neural_Network_WACV_2023_paper.pdf)." 
+Our dual interactive implicit neural network (DIINN) is capable of producing images 
+of arbitrary resolution, using a single trained model, by capturing the underlying 
+implicit representation of the input image. DIINN achieves state-of-the-art SISR 
+results on extensive experimental evaluations across many settings and datasets. 
 
 ### Citation
 
