@@ -104,12 +104,6 @@ class SRLitModule(LightningModule):
     def forward(self, x: torch.Tensor, size, eval_bsize=None):
         return self.net(x, size, eval_bsize)
 
-    def on_train_start(self):
-        # by default lightning executes validation step sanity checks before training starts,
-        # so we need to make sure val_acc_best doesn't store accuracy from these checks
-        #self.val_psnr_best.reset()
-        pass
-
     def step(self, batch: Any, eval_bsize=None):
         loss = 0
         pred_hrs = {}
@@ -129,16 +123,12 @@ class SRLitModule(LightningModule):
 
         B = len(batch) * batch[2][0].shape[0]
         # log train metrics
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True, batch_size=B)
+        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=B)
 
         # we can return here dict with any tensors
         # and then read it in some callback or in `training_epoch_end()` below
         # remember to always return loss from `training_step()` or else backpropagation will fail!
         return {"loss": loss}
-
-    def training_epoch_end(self, outputs: List[Any]):
-        # `outputs` is a list of dicts returned from `training_step()`
-        pass
 
     def validation_step(self, batch: Any, batch_idx: int):
         loss, pred_hrs = self.step(batch, self.hparams.eval_bsize)
@@ -152,9 +142,6 @@ class SRLitModule(LightningModule):
             psnr = psnr_func(pred_hrs[scale], batch[scale][1])
             self.log("val/psnr_x{}".format(scale), psnr, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=B/len(batch))
         return {}
-
-    def validation_epoch_end(self, outputs: List[Any]):
-        pass
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]):
         _, pred_hrs = self.step(batch, self.hparams.eval_bsize)
@@ -178,9 +165,6 @@ class SRLitModule(LightningModule):
             self.log("test/ssim_x{}".format(scale), res[scale]['ssim_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
             self.log("test/lr_psnr_x{}".format(scale), res[scale]['lr_psnr_res'], on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=1)
         return res
-
-    def test_epoch_end(self, outputs: List[Any]):
-        print(outputs)
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.

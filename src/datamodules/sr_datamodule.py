@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 import random
 from numpy import indices
 import torch
@@ -50,12 +50,12 @@ class SRDataModule(LightningDataModule):
     def __init__(
         self,
         root: str = "./data/",
-        trainsets: list[Tuple[str,str]] = [("DIV2K",'train')],
+        trainsets: List[Tuple[str,str]] = [("DIV2K",'train')],
         trainsets_repeat: int = 20,
-        testsets: list[Tuple[str,str]] = [("DIV2K",'train'), ('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')],
+        testsets: List[Tuple[str,str]] = [("DIV2K",'train'), ('benchmark', 'B100'), ('benchmark', 'Set5'), ('benchmark', 'Set14'), ('benchmark', 'Urban100')],
         batch_size: int = 64,
-        train_scales: list[float] = [2,3,4],
-        test_scales: list[float] = [2, 2.5, 3, 3.5, 4, 6, 8, 10, 15, 20],
+        train_scales: List[float] = [2,3,4],
+        test_scales: List[float] = [2, 2.5, 3, 3.5, 4, 6, 8, 10, 15, 20],
         patch_size: int = 192,
         num_workers: int = 16,
         pin_memory: bool = False,
