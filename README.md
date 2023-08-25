@@ -51,14 +51,15 @@ First, clone the project
 
 Then, create a running environment via conda
 
-    $ conda create -n myenv python=3.8
+    $ conda create -n myenv
     $ conda activate myenv
 
 Finally, install the software requirements
 
-    $ conda install pytorch torchvision cudatoolkit=11.6 -c pytorch -c conda-forge
-    $ conda install pytorch-lightning=1.6 -c conda-forge
-    $ conda install omegaconf rich -c conda-forge
+    $ conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
+    $ conda install pytorch-lightning -c conda-forge
+    $ conda install rich colorlog -c conda-forge
+    $ pip install hydra-core
 
 ### Datasets 
 
@@ -105,9 +106,9 @@ The data folder structure should be the following:
 To train a model with the default configuration located in
 [configs/default.yaml](configs/default.yaml), run the following command 
 
-    $ python main.py fit -c configs/default_test.yaml --model=SRLitModule --model.arch=diinn --model.mode=3 --model.init_q=False --trainer.logger=TensorBoardLogger --trainer.logger.save_dir=logs/ --trainer.logger.name=3_0
+    $ python train.py
 
-You may edit [configs/default.yaml](configs/default.yaml) to best utilize your
+You may edit [configs/default.yaml](configs/hydra_config.yaml) to best utilize your
 machine resources. For example, --model.mode=3 and --model.init_q=False is the
 configuration of our final model (i.e., model (f) in the paper).
 

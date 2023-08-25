@@ -172,14 +172,3 @@ class SRDataModule(LightningDataModule):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Things to do when loading checkpoint."""
         pass
-
-
-if __name__ == "__main__":
-    import hydra
-    import omegaconf
-    import pyrootutils
-
-    root = pyrootutils.setup_root(__file__)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "mnist.yaml")
-    cfg.data_dir = str(root / "data")
-    _ = hydra.utils.instantiate(cfg)

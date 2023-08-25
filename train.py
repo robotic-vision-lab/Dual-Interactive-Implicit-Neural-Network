@@ -15,7 +15,6 @@ def train(cfg: DictConfig) -> None:
     model = instantiate(cfg.model)
 
     trainer.fit(model=model, datamodule=datamodule)
-    pdb.set_trace()
 
 if __name__ == "__main__":
     train()
