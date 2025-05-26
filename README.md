@@ -29,7 +29,7 @@ If you find this project useful, then please consider citing our work.
 ```bibitex
 @inproceedings{nguyen2023single,
   title={Single Image Super-Resolution via a Dual Interactive Implicit Neural Network},
-  author={Nguyen, Quan H. and Beksi, William J},
+  author={Nguyen, Quan H and Beksi, William J},
   booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
   pages={4936--4945},
   year={2023}
